@@ -208,7 +208,7 @@ export default function HomePage() {
         {/* Promociones especiales del backend - Carrusel */}
         <div className="px-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Promociones especiales</h2>
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden rounded-2xl">
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{ transform: `translateX(-${currentPromoIndex * 100}%)` }}
@@ -217,7 +217,7 @@ export default function HomePage() {
                 <div 
                   key={promotion.id}
                   onClick={() => handleGuestClick(`/search?promotion=${promotion.id}`)}
-                  className={`${promotion.gradient || 'bg-gradient-to-r from-purple-500 to-purple-600'} rounded-2xl p-6 w-full flex-shrink-0 relative cursor-pointer hover:scale-105 transition-transform`}
+                  className={`${promotion.gradient || 'bg-gradient-to-r from-purple-500 to-purple-600'} p-6 w-full flex-shrink-0 relative cursor-pointer hover:opacity-90 transition-opacity`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-white">
@@ -248,7 +248,7 @@ export default function HomePage() {
                 <>
                   <div 
                     onClick={() => handleGuestClick('/search?category=hogar')}
-                    className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-6 w-full flex-shrink-0 relative cursor-pointer hover:scale-105 transition-transform"
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 w-full flex-shrink-0 relative cursor-pointer hover:opacity-90 transition-opacity"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-white">
@@ -273,7 +273,7 @@ export default function HomePage() {
                   
                   <div 
                     onClick={() => handleGuestClick('/search?category=belleza')}
-                    className="bg-gradient-to-r from-pink-500 to-rose-600 rounded-2xl p-6 w-full flex-shrink-0 relative cursor-pointer hover:scale-105 transition-transform"
+                    className="bg-gradient-to-r from-pink-500 to-rose-600 p-6 w-full flex-shrink-0 relative cursor-pointer hover:opacity-90 transition-opacity"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-white">
@@ -298,7 +298,7 @@ export default function HomePage() {
                   
                   <div 
                     onClick={() => handleGuestClick('/search?category=all')}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 w-full flex-shrink-0 relative cursor-pointer hover:scale-105 transition-transform"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 w-full flex-shrink-0 relative cursor-pointer hover:opacity-90 transition-opacity"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-white">
