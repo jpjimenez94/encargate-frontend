@@ -82,78 +82,44 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log('✅ User authenticated, proceeding with client notifications refresh');
-
-    // CRÍTICO: Prevenir múltiples procesamiento simultáneos
-    if (isProcessingNotifications) {
-      console.log('🚫 Ya procesando notificaciones, saltando...');
-      return;
-    }
-
-    setIsProcessingNotifications(true);
+    console.log('✅ Cliente autenticado, procediendo con refresh de notificaciones');
 
     try {
       const orders = await apiClient.getMyOrders();
-      console.log('🔍 Cliente - Pedidos obtenidos del backend:', orders?.length || 0);
-      console.log('🔍 Cliente - Estados de pedidos:', orders?.map(o => ({ id: o.id.slice(-4), status: o.status })));
+      console.log('🔍 Cliente - Pedidos obtenidos:', orders?.length || 0);
       
-      // Filtrar pedidos que han cambiado de estado (PENDING → ACCEPTED/IN_PROGRESS/COMPLETED/CANCELLED)
-      const allNotifications = orders?.filter(order => 
-        order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' || order.status === 'COMPLETED' || order.status === 'CANCELLED'
+      // Filtrar pedidos con estados notificables (similar al proveedor con PENDING)
+      const notifiableOrders = orders?.filter(order => 
+        order.status === 'ACCEPTED' || 
+        order.status === 'IN_PROGRESS' || 
+        order.status === 'COMPLETED' || 
+        order.status === 'CANCELLED'
       ) || [];
       
-      console.log('🔍 Cliente - Notificaciones filtradas:', allNotifications?.length || 0);
-      console.log('🔍 Cliente - Estados notificables:', allNotifications?.map(o => ({ id: o.id.slice(-4), status: o.status })));
+      console.log('🔍 Cliente - Pedidos notificables:', notifiableOrders.length);
       
-      // Comparar con notificaciones anteriores para detectar cambios
-      const previousNotificationIds = new Set(previousClientNotifications.map(n => n.id));
-      const newNotifications = allNotifications.filter(order => 
-        !previousNotificationIds.has(order.id) && !notifiedOrders.has(order.id)
+      // Detectar NUEVOS pedidos notificables (similar a cómo el proveedor detecta nuevos PENDING)
+      const previousNotifiableIds = new Set(clientNotifications.map(o => o.id));
+      const newNotifiableOrders = notifiableOrders.filter(order => 
+        !previousNotifiableIds.has(order.id)
       );
       
-      // También detectar cambios de estado en pedidos existentes
-      const statusChangedNotifications = allNotifications.filter(order => {
-        const existingNotification = previousClientNotifications.find(n => n.id === order.id);
-        return existingNotification && existingNotification.status !== order.status && !notifiedOrders.has(order.id + '_' + order.status);
-      });
+      // Actualizar lista de notificaciones
+      setClientNotifications(notifiableOrders);
       
-      // CRÍTICO: Solo procesar si realmente hay cambios
-      const hasRealChanges = newNotifications.length > 0 || statusChangedNotifications.length > 0;
-      
-      // Actualizar estados
-      setPreviousClientNotifications(clientNotifications);
-      setClientNotifications(allNotifications);
-      
-      // Mostrar pop-up SOLO si hay cambios reales
-      const allNewNotifications = [...newNotifications, ...statusChangedNotifications];
-      if (hasRealChanges && allNewNotifications.length > 0) {
-        console.log(`📱 Cliente: ${allNewNotifications.length} nuevas notificaciones detectadas`);
-        console.log('📱 Cliente - Detalles de notificaciones:', allNewNotifications.map(o => ({ id: o.id.slice(-4), status: o.status })));
-        
-        // Solo mostrar popup si realmente hay notificaciones nuevas
-        if (!showNotificationPopup) {
-          setShowNotificationPopup(true);
-          console.log('📱 Cliente - Popup activado, esperando interacción del usuario');
-        }
-        
-        // Marcar inmediatamente para evitar loops
-        setNotifiedOrders(prev => {
-          const newSet = new Set(prev);
-          allNewNotifications.forEach(order => {
-            newSet.add(order.id);
-            newSet.add(order.id + '_' + order.status);
-          });
-          return newSet;
-        });
-      } else {
-        console.log('📱 Cliente - Sin cambios reales detectados, manteniendo estado actual');
+      // Mostrar popup si hay NUEVOS pedidos notificables
+      if (newNotifiableOrders.length > 0) {
+        setShowNotificationPopup(true);
+        setLastClientNotificationTime(Date.now());
+        console.log(`🔔 Cliente: ${newNotifiableOrders.length} nuevas notificaciones detectadas`);
+        console.log('🔔 Nuevas notificaciones:', newNotifiableOrders.map(o => ({ 
+          id: o.id.slice(-4), 
+          status: o.status,
+          service: o.service 
+        })));
       }
     } catch (error) {
       console.error('Error loading client notifications:', error);
-      // En caso de error, no actualizar el estado para evitar problemas
-    } finally {
-      // CRÍTICO: Siempre liberar el lock
-      setIsProcessingNotifications(false);
     }
   };
 
@@ -193,7 +159,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [user, isLoading]);
 
-  // Verificar notificaciones de cliente cada 30 segundos (para clientes)
+  // Verificar notificaciones de cliente cada 5 segundos (para clientes)
   useEffect(() => {
     // No hacer nada si AuthContext aún está cargando
     if (isLoading) {
@@ -220,8 +186,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Delay inicial para evitar requests inmediatos
     const initialTimeout = setTimeout(() => {
       refreshClientNotifications();
-      interval = setInterval(refreshClientNotifications, 30000); // 30 segundos
-    }, 3000); // 3 segundos de delay para dar tiempo al login
+      interval = setInterval(refreshClientNotifications, 5000); // 5 segundos (igual que proveedor)
+    }, 2000); // 2 segundos de delay
 
     return () => {
       clearTimeout(initialTimeout);

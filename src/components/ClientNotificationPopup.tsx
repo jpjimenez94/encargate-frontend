@@ -7,64 +7,22 @@ import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function ClientNotificationPopup() {
   const router = useRouter();
-  const { clientNotifications, showNotificationPopup, setShowNotificationPopup, notifiedOrders, markNotificationsAsViewed } = useNotifications();
+  const { clientNotifications, showNotificationPopup, setShowNotificationPopup } = useNotifications();
 
-  // Sistema para rastrear notificaciones mostradas permanentemente
-  const getShownNotifications = () => {
-    if (typeof window !== 'undefined') {
-      const shown = localStorage.getItem('shownNotifications');
-      return shown ? JSON.parse(shown) : [];
-    }
-    return [];
-  };
-
-  const markNotificationAsShown = (orderId: string, status: string) => {
-    if (typeof window !== 'undefined') {
-      const shown = getShownNotifications();
-      const notificationKey = `${orderId}_${status}`;
-      if (!shown.includes(notificationKey)) {
-        shown.push(notificationKey);
-        localStorage.setItem('shownNotifications', JSON.stringify(shown));
-      }
-    }
-  };
-
-  // Filtrar notificaciones que no han sido mostradas antes (incluyendo localStorage)
-  const shownNotifications = getShownNotifications();
-  const newNotifications = clientNotifications.filter(order => {
-    const notificationKey = `${order.id}_${order.status}`;
-    return !notifiedOrders.has(order.id) && 
-           !notifiedOrders.has(order.id + '_' + order.status) &&
-           !shownNotifications.includes(notificationKey);
-  });
-
-  // Simplificar lógica para evitar loops
+  // Si no hay popup activo o no hay notificaciones, no mostrar nada
   if (!showNotificationPopup || clientNotifications.length === 0) {
     return null;
   }
 
-  // Solo mostrar si hay notificaciones realmente nuevas
-  if (newNotifications.length === 0) {
-    return null;
-  }
-
-  const notificationsToShow = newNotifications;
+  const notificationsToShow = clientNotifications;
 
   const handleViewOrders = () => {
-    // Marcar todas las notificaciones mostradas como vistas permanentemente
-    notificationsToShow.forEach(order => {
-      markNotificationAsShown(order.id, order.status);
-    });
-    markNotificationsAsViewed();
+    setShowNotificationPopup(false);
     router.push('/orders');
   };
 
   const handleClose = () => {
-    // Marcar todas las notificaciones mostradas como vistas permanentemente
-    notificationsToShow.forEach(order => {
-      markNotificationAsShown(order.id, order.status);
-    });
-    markNotificationsAsViewed();
+    setShowNotificationPopup(false);
   };
 
   const getNotificationMessage = (order: any) => {
@@ -169,8 +127,7 @@ export default function ClientNotificationPopup() {
                     </div>
                     <button
                       onClick={() => {
-                        markNotificationAsShown(order.id, order.status);
-                        markNotificationsAsViewed();
+                        setShowNotificationPopup(false);
                         router.push(`/rate-order/${order.id}`);
                       }}
                       className="mt-2 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
