@@ -1,0 +1,288 @@
+{
+  "categories": [
+    {
+      "id": "hogar",
+      "name": "Hogar",
+      "icon": "🏠",
+      "color": "#8B5CF6",
+      "description": "Servicios para el hogar",
+      "services": ["Limpieza", "Plomería", "Electricidad", "Carpintería"]
+    },
+    {
+      "id": "belleza",
+      "name": "Belleza",
+      "icon": "💄",
+      "color": "#F97316",
+      "description": "Servicios de belleza y cuidado personal",
+      "services": ["Peluquería", "Manicure", "Masajes", "Estética"]
+    },
+    {
+      "id": "educacion",
+      "name": "Educación",
+      "icon": "📚",
+      "color": "#3B82F6",
+      "description": "Servicios educativos y tutorías",
+      "services": ["Tutorías", "Clases particulares", "Idiomas"]
+    },
+    {
+      "id": "cuidado",
+      "name": "Cuidado Infantil",
+      "icon": "⭐",
+      "color": "#EAB308",
+      "description": "Cuidado de niños y bebés",
+      "services": ["Niñera", "Cuidado de bebés", "Actividades infantiles"]
+    },
+    {
+      "id": "tecnologia",
+      "name": "Tecnología",
+      "icon": "💻",
+      "color": "#EF4444",
+      "description": "Servicios tecnológicos",
+      "services": ["Reparación PC", "Instalación software", "Soporte técnico"]
+    },
+    {
+      "id": "profesionales",
+      "name": "Profesionales",
+      "icon": "💼",
+      "color": "#22C55E",
+      "description": "Servicios profesionales",
+      "services": ["Contabilidad", "Legal", "Consultoría"]
+    },
+    {
+      "id": "mascotas",
+      "name": "Mascotas",
+      "icon": "🐾",
+      "color": "#14B8A6",
+      "description": "Cuidado de mascotas",
+      "services": ["Veterinaria", "Peluquería canina", "Paseo de perros"]
+    },
+    {
+      "id": "mas",
+      "name": "Más",
+      "icon": "➕",
+      "color": "#6B7280",
+      "description": "Otros servicios",
+      "services": ["Otros"]
+    }
+  ],
+  "encargados": [
+    {
+      "id": "1",
+      "name": "Miguel Paredes",
+      "category": "hogar",
+      "service": "Plomería",
+      "price": 254.99,
+      "rating": 5.0,
+      "reviewsCount": 127,
+      "avatar": "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face&auto=format",
+      "verified": true,
+      "available": true,
+      "location": "Bogotá, Colombia",
+      "experience": "5 años",
+      "description": "Plomero certificado con amplia experiencia en reparaciones residenciales y comerciales.",
+      "services": ["Reparación de tuberías", "Instalación de grifos", "Destapado de cañerías"],
+      "priceRange": { "min": 50, "max": 300 }
+    },
+    {
+      "id": "2",
+      "name": "Julián Herrera",
+      "category": "hogar",
+      "service": "Electricista",
+      "price": 354.99,
+      "rating": 5.0,
+      "reviewsCount": 89,
+      "avatar": "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=150&h=150&fit=crop&crop=face&auto=format",
+      "verified": true,
+      "available": true,
+      "location": "Medellín, Colombia",
+      "experience": "8 años",
+      "description": "Electricista profesional especializado en instalaciones residenciales y comerciales.",
+      "services": ["Instalación eléctrica", "Reparación de circuitos", "Iluminación LED"],
+      "priceRange": { "min": 80, "max": 500 }
+    },
+    {
+      "id": "3",
+      "name": "Andrés Salazar",
+      "category": "hogar",
+      "service": "Carpintería",
+      "price": 264.99,
+      "rating": 5.0,
+      "reviewsCount": 156,
+      "avatar": "https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=150&h=150&fit=crop&crop=face&auto=format",
+      "verified": true,
+      "available": false,
+      "location": "Cali, Colombia",
+      "experience": "10 años",
+      "description": "Carpintero experto en muebles a medida y reparaciones de madera.",
+      "services": ["Muebles a medida", "Reparación de puertas", "Instalación de closets"],
+      "priceRange": { "min": 100, "max": 400 }
+    },
+    {
+      "id": "4",
+      "name": "Carolina López",
+      "category": "belleza",
+      "service": "Peluquería",
+      "price": 180.00,
+      "rating": 4.8,
+      "reviewsCount": 203,
+      "avatar": "https://images.unsplash.com/photo-1594824388853-e0c5c9e1e4c5?w=150&h=150&fit=crop&crop=face&auto=format",
+      "verified": true,
+      "available": true,
+      "location": "Bogotá, Colombia",
+      "experience": "6 años",
+      "description": "Estilista profesional especializada en cortes modernos y coloración.",
+      "services": ["Corte de cabello", "Coloración", "Peinados para eventos"],
+      "priceRange": { "min": 50, "max": 250 }
+    },
+    {
+      "id": "5",
+      "name": "Roberto Martínez",
+      "category": "tecnologia",
+      "service": "Soporte Técnico",
+      "price": 120.00,
+      "rating": 4.9,
+      "reviewsCount": 78,
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format",
+      "verified": true,
+      "available": true,
+      "location": "Medellín, Colombia",
+      "experience": "4 años",
+      "description": "Técnico en sistemas especializado en reparación de computadores y redes.",
+      "services": ["Reparación PC", "Instalación software", "Configuración redes"],
+      "priceRange": { "min": 60, "max": 200 }
+    }
+  ],
+  "promotions": [
+    {
+      "id": "1",
+      "title": "40% OFF",
+      "subtitle": "Limpieza Profunda",
+      "description": "Descuento especial en servicios de limpieza para el hogar",
+      "discount": 40,
+      "category": "hogar",
+      "color": "purple",
+      "gradient": "from-purple-500 to-purple-600",
+      "active": true,
+      "validUntil": "2024-12-31",
+      "image": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=100&h=100&fit=crop&auto=format"
+    },
+    {
+      "id": "2",
+      "title": "15% OFF",
+      "subtitle": "Servicios",
+      "description": "Descuento en todos los servicios profesionales",
+      "discount": 15,
+      "category": "all",
+      "color": "blue",
+      "gradient": "from-blue-500 to-blue-600",
+      "active": true,
+      "validUntil": "2024-11-30",
+      "image": "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=100&h=100&fit=crop&auto=format"
+    },
+    {
+      "id": "3",
+      "title": "25% OFF",
+      "subtitle": "Primera Vez",
+      "description": "Descuento especial para nuevos usuarios",
+      "discount": 25,
+      "category": "all",
+      "color": "green",
+      "gradient": "from-green-500 to-green-600",
+      "active": true,
+      "validUntil": "2024-12-15",
+      "image": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop&auto=format"
+    }
+  ],
+  "users": [
+    {
+      "id": "1",
+      "name": "Juan Jiménez",
+      "email": "jpjimenez94@gmail.com",
+      "role": "cliente",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 300 123 4567",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2024-01-15",
+      "verified": true
+    },
+    {
+      "id": "2",
+      "name": "María García",
+      "email": "maria.garcia@email.com",
+      "role": "cliente",
+      "avatar": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 301 987 6543",
+      "location": "Medellín, Colombia",
+      "joinDate": "2024-02-20",
+      "verified": true
+    },
+    {
+      "id": "3",
+      "name": "Miguel Paredes",
+      "email": "miguel.paredes@email.com",
+      "role": "encargado",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 302 456 7890",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2023-08-10",
+      "verified": true
+    },
+    {
+      "id": "4",
+      "name": "Julián Herrera",
+      "email": "julian.herrera@email.com",
+      "role": "encargado",
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 303 567 8901",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2023-09-15",
+      "verified": true
+    },
+    {
+      "id": "5",
+      "name": "Andrés Salazar",
+      "email": "andres.salazar@email.com",
+      "role": "encargado",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 304 678 9012",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2023-10-20",
+      "verified": true
+    },
+    {
+      "id": "6",
+      "name": "Carolina López",
+      "email": "carolina.lopez@email.com",
+      "role": "encargado",
+      "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 305 789 0123",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2023-11-05",
+      "verified": true
+    },
+    {
+      "id": "7",
+      "name": "Roberto Martínez",
+      "email": "roberto.martinez@email.com",
+      "role": "encargado",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format",
+      "phone": "+57 306 890 1234",
+      "location": "Bogotá, Colombia",
+      "joinDate": "2023-12-01",
+      "verified": true
+    }
+  ],
+  "orders": [
+    {
+      "id": "1",
+      "userId": "1",
+      "encargadoId": "1",
+      "service": "Reparación de tubería",
+      "status": "completed",
+      "price": 254.99,
+      "date": "2024-03-15",
+      "rating": 5,
+      "review": "Excelente servicio, muy profesional y puntual."
+    }
+  ]
+}
