@@ -14,6 +14,10 @@ const nextConfig = {
   images: {
     domains: ['images.unsplash.com', 'ui-avatars.com'],
   },
+  // Configuración experimental para mejor manejo de Suspense
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
 }
 
 module.exports = nextConfig
