@@ -65,8 +65,16 @@ export default function ClientNotificationPopup() {
   };
 
   const acceptedOrders = notificationsToShow.filter(order => order.status === 'ACCEPTED');
-  const completedOrders = notificationsToShow.filter(order => order.status === 'COMPLETED');
-  const primaryNotification = completedOrders.length > 0 ? completedOrders[0] : acceptedOrders[0] || notificationsToShow[0];
+  // Solo mostrar pedidos completados que NO tienen calificación
+  const completedOrders = notificationsToShow.filter(order => order.status === 'COMPLETED' && !order.review);
+  const inProgressOrders = notificationsToShow.filter(order => order.status === 'IN_PROGRESS');
+  
+  // Si no hay notificaciones relevantes (completados sin review o aceptados), no mostrar nada
+  if (completedOrders.length === 0 && acceptedOrders.length === 0 && inProgressOrders.length === 0) {
+    return null;
+  }
+  
+  const primaryNotification = completedOrders.length > 0 ? completedOrders[0] : acceptedOrders[0] || inProgressOrders[0] || notificationsToShow[0];
   const notificationInfo = getNotificationMessage(primaryNotification);
   const NotificationIcon = notificationInfo.icon;
 
@@ -139,6 +147,45 @@ export default function ClientNotificationPopup() {
               </div>
             )}
 
+            {/* Pedidos en progreso */}
+            {inProgressOrders.length > 0 && (
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2 flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                  En Progreso ({inProgressOrders.length})
+                </h3>
+                {inProgressOrders.slice(0, 2).map((order) => (
+                  <div key={order.id} className="border border-blue-200 rounded-lg p-3 bg-blue-50 mb-2">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{order.service}</h4>
+                        <p className="text-sm text-gray-600">
+                          {order.encargado?.name || 'Encargado'}
+                        </p>
+                      </div>
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                        En Progreso
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {new Date(order.date).toLocaleDateString('es-ES')} - {order.time}
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {order.address}
+                      </div>
+                      <div className="flex items-center">
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        ${order.price.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Pedidos aceptados */}
             {acceptedOrders.length > 0 && (
               <div>
@@ -178,9 +225,9 @@ export default function ClientNotificationPopup() {
               </div>
             )}
 
-            {(acceptedOrders.length + completedOrders.length) > 4 && (
+            {(acceptedOrders.length + completedOrders.length + inProgressOrders.length) > 6 && (
               <div className="text-center text-sm text-gray-500 py-2">
-                Y {(acceptedOrders.length + completedOrders.length) - 4} actualización{(acceptedOrders.length + completedOrders.length) - 4 > 1 ? 'es' : ''} más...
+                Y {(acceptedOrders.length + completedOrders.length + inProgressOrders.length) - 6} actualización{(acceptedOrders.length + completedOrders.length + inProgressOrders.length) - 6 > 1 ? 'es' : ''} más...
               </div>
             )}
           </div>

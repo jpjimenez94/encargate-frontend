@@ -195,19 +195,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [user, isLoading]);
 
-  // Pop-up cada minuto si hay pedidos pendientes (encargados)
+  // Pop-up cada 30 segundos si hay pedidos pendientes (encargados)
   useEffect(() => {
     if (!user || user.role !== 'ENCARGADO' || pendingOrders.length === 0) return;
 
     const interval = setInterval(() => {
       setShowNotificationPopup(true);
-    }, 60000); // 1 minuto
+    }, 30000); // 30 segundos
 
     return () => clearInterval(interval);
   }, [user, pendingOrders.length]);
 
-  // Los clientes solo reciben notificaciones una vez por pedido cuando cambia de estado
-  // No necesitamos pop-ups recurrentes para clientes
+  // Pop-up cada 30 segundos si hay pedidos completados sin calificar (clientes)
+  useEffect(() => {
+    if (!user || user.role !== 'CLIENTE' || clientNotifications.length === 0) return;
+
+    // Solo mostrar popup recurrente si hay pedidos completados sin review
+    const completedWithoutReview = clientNotifications.filter(
+      order => order.status === 'COMPLETED' && !order.review
+    );
+
+    if (completedWithoutReview.length === 0) return;
+
+    const interval = setInterval(() => {
+      setShowNotificationPopup(true);
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [user, clientNotifications]);
 
   // Función para forzar actualización inmediata
   const forceRefresh = useCallback(async () => {
