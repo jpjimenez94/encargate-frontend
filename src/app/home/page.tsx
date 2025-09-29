@@ -20,6 +20,47 @@ export default function HomePage() {
   const [isGuest, setIsGuest] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  // Banners de publicidad
+  const banners = [
+    {
+      id: 1,
+      icon: '🏠',
+      title: 'Encárgate App',
+      headline: '¡Encuentra tu servicio ideal!',
+      subtitle: 'Miles de profesionales verificados',
+      gradient: 'from-orange-400 to-orange-500',
+      image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=200&h=200&fit=crop&auto=format'
+    },
+    {
+      id: 2,
+      icon: '⚡',
+      title: 'Servicio Express',
+      headline: '¡Atención inmediata!',
+      subtitle: 'Respuesta en menos de 1 hora',
+      gradient: 'from-blue-400 to-blue-500',
+      image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=200&h=200&fit=crop&auto=format'
+    },
+    {
+      id: 3,
+      icon: '⭐',
+      title: 'Calidad Garantizada',
+      headline: '¡Profesionales certificados!',
+      subtitle: 'Todos nuestros encargados están verificados',
+      gradient: 'from-purple-400 to-purple-500',
+      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&auto=format'
+    },
+    {
+      id: 4,
+      icon: '💰',
+      title: 'Mejores Precios',
+      headline: '¡Ahorra hasta 40%!',
+      subtitle: 'Compara y elige la mejor opción',
+      gradient: 'from-green-400 to-green-500',
+      image: 'https://images.unsplash.com/photo-1554224311-beee415c201f?w=200&h=200&fit=crop&auto=format'
+    }
+  ];
 
   // Verificar si es usuario invitado
   useEffect(() => {
@@ -77,26 +118,34 @@ export default function HomePage() {
     console.log('Current state:', {
       loading,
       categoriesLength: categories.length,
-      encargadosLength: encargados.length,
       isGuest,
       user: user?.name || 'No user'
     });
   }, [loading, categories.length, encargados.length, isGuest, user]);
 
-  // Carrusel automático de promociones
+  // Carrusel  // Auto-rotate promociones cada 5 segundos
   useEffect(() => {
-    if (promotions.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentPromoIndex((prev) => (prev + 1) % promotions.length);
-      }, 4000); // Cambia cada 4 segundos
+    if (promotions.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentPromoIndex((prev) => (prev + 1) % promotions.length);
+    }, 5000);
 
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [promotions.length]);
+
+  // Auto-rotate banners cada 4 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -140,24 +189,51 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Banner dinámico de publicidad */}
+        {/* Banner dinámico de publicidad - Carrusel */}
         <div className="px-6 mb-4">
-          <div className="bg-gradient-to-r from-orange-400 to-orange-500 rounded-2xl p-6 relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <div className="text-white">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-sm font-medium">🏠 Encárgate App</span>
+          <div className="relative overflow-hidden rounded-2xl">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
+            >
+              {banners.map((banner) => (
+                <div 
+                  key={banner.id}
+                  className={`bg-gradient-to-r ${banner.gradient} p-6 w-full flex-shrink-0 relative`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-white">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-sm font-medium">{banner.icon} {banner.title}</span>
+                      </div>
+                      <div className="text-2xl font-bold mb-1">{banner.headline}</div>
+                      <div className="text-sm opacity-90">{banner.subtitle}</div>
+                    </div>
+                    <div className="w-20 h-20">
+                      <img 
+                        src={banner.image}
+                        alt={banner.title}
+                        className="w-20 h-20 rounded-full object-cover border-4 border-white border-opacity-30"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold mb-1">¡Encuentra tu servicio ideal!</div>
-                <div className="text-sm opacity-90">Miles de profesionales verificados</div>
-              </div>
-              <div className="w-20 h-20">
-                <img 
-                  src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=200&h=200&fit=crop&auto=format"
-                  alt="Trabajador"
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white border-opacity-30"
+              ))}
+            </div>
+            {/* Indicadores de puntos */}
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {banners.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentBannerIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentBannerIndex 
+                      ? 'bg-white w-4' 
+                      : 'bg-white bg-opacity-50'
+                  }`}
+                  aria-label={`Ir al banner ${index + 1}`}
                 />
-              </div>
+              ))}
             </div>
           </div>
         </div>
