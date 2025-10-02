@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Star, Plus, Heart, MessageCircle } from 'lucide-react';
+import { Search, Star, Plus, Heart, MessageCircle, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import AuthModal from '@/components/AuthModal';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient, Category, Encargado, Promotion } from '@/services/api';
+import { apiClient, Category, Encargado, Promotion, Banner } from '@/services/api';
 
 export default function HomePage() {
   const router = useRouter();
@@ -16,51 +16,12 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [encargados, setEncargados] = useState<Encargado[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-
-  // Banners de publicidad
-  const banners = [
-    {
-      id: 1,
-      icon: '🏠',
-      title: 'Encárgate App',
-      headline: '¡Encuentra tu servicio ideal!',
-      subtitle: 'Miles de profesionales verificados',
-      gradient: 'from-orange-400 to-orange-500',
-      image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=200&h=200&fit=crop&auto=format'
-    },
-    {
-      id: 2,
-      icon: '⚡',
-      title: 'Servicio Express',
-      headline: '¡Atención inmediata!',
-      subtitle: 'Respuesta en menos de 1 hora',
-      gradient: 'from-blue-400 to-blue-500',
-      image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=200&h=200&fit=crop&auto=format'
-    },
-    {
-      id: 3,
-      icon: '⭐',
-      title: 'Calidad Garantizada',
-      headline: '¡Profesionales certificados!',
-      subtitle: 'Todos nuestros encargados están verificados',
-      gradient: 'from-purple-400 to-purple-500',
-      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&auto=format'
-    },
-    {
-      id: 4,
-      icon: '💰',
-      title: 'Mejores Precios',
-      headline: '¡Ahorra hasta 40%!',
-      subtitle: 'Compara y elige la mejor opción',
-      gradient: 'from-green-400 to-green-500',
-      image: 'https://images.unsplash.com/photo-1554224311-beee415c201f?w=200&h=200&fit=crop&auto=format'
-    }
-  ];
 
   // Verificar si es usuario invitado
   useEffect(() => {
@@ -102,6 +63,13 @@ export default function HomePage() {
         })));
         setPromotions(promotionsData || []);
         console.log('Promotions set:', promotionsData?.length || 0);
+        
+        // Cargar banners
+        console.log('Loading banners...');
+        const bannersData = await apiClient.getBanners();
+        console.log('Banners response:', bannersData);
+        setBanners(bannersData || []);
+        console.log('Banners set:', bannersData?.length || 0);
         
       } catch (error) {
         console.error('Error loading data:', error);
@@ -179,9 +147,9 @@ export default function HomePage() {
                 Bienvenido 👋 {user?.name || 'Usuario'}
               </h1>
             </div>
-            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&auto=format"
+                src={user?.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&auto=format'}
                 alt="Avatar"
                 className="w-12 h-12 rounded-full object-cover"
               />
@@ -268,8 +236,12 @@ export default function HomePage() {
                 onClick={() => handleGuestClick(`/category/${category.id}`)}
                 className="flex flex-col items-center p-3 bg-white rounded-2xl cursor-pointer hover:shadow-md transition-shadow"
               >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${category.color || 'bg-orange-100'}`}>
-                  <span className="text-2xl">{category.icon}</span>
+                <div className="w-12 h-12 rounded-full overflow-hidden mb-2 border-2 border-gray-100">
+                  <img 
+                    src={category.imageUrl || `https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=100&h=100&fit=crop&auto=format`}
+                    alt={category.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <span className="text-xs text-gray-700 text-center font-medium">{category.name}</span>
               </div>
@@ -463,26 +435,60 @@ export default function HomePage() {
 
         {/* Footer con redes sociales */}
         <div className="px-6 pb-20">
-          <div className="bg-orange-500 rounded-2xl p-4 flex justify-center space-x-6">
-            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 transition-all">
-              <span className="text-white text-lg font-bold">f</span>
+          <div className="bg-orange-500 rounded-2xl p-6">
+            <h3 className="text-white text-center font-semibold mb-4">Síguenos en redes sociales</h3>
+            <div className="flex justify-center space-x-4">
+              {/* Facebook */}
+              <a 
+                href="https://facebook.com/encargate" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 hover:scale-110 transition-all"
+              >
+                <Facebook className="w-6 h-6 text-white" />
+              </a>
+              
+              {/* Twitter/X */}
+              <a 
+                href="https://twitter.com/encargate" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 hover:scale-110 transition-all"
+              >
+                <Twitter className="w-6 h-6 text-white" />
+              </a>
+              
+              {/* Instagram */}
+              <a 
+                href="https://instagram.com/encargate" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 hover:scale-110 transition-all"
+              >
+                <Instagram className="w-6 h-6 text-white" />
+              </a>
+              
+              {/* LinkedIn */}
+              <a 
+                href="https://linkedin.com/company/encargate" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 hover:scale-110 transition-all"
+              >
+                <Linkedin className="w-6 h-6 text-white" />
+              </a>
             </div>
-            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 transition-all">
-              <span className="text-white text-lg">🐦</span>
-            </div>
-            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 transition-all">
-              <span className="text-white text-lg">📷</span>
-            </div>
-            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center cursor-pointer hover:bg-opacity-30 transition-all">
-              <span className="text-white text-lg font-bold">in</span>
-            </div>
+            
+            {/* Información adicional */}
+            <p className="text-white text-center text-sm mt-4 opacity-90">
+              &copy; 2025 Encárgate - Conectando servicios con personas
+            </p>
           </div>
         </div>
 
         {/* Espaciado para navegación */}
         <div className="h-20"></div>
       </div>
-
       {/* Navegación inferior funcional */}
       <Navbar activeRoute="home" />
 

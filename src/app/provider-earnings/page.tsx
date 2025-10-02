@@ -6,6 +6,7 @@ import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Calendar, Download, Ey
 import ProviderNavbar from '@/components/ProviderNavbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, Order } from '@/services/api';
+import { pricingService } from '@/services/pricing';
 
 export default function ProviderEarningsPage() {
   const router = useRouter();
@@ -45,14 +46,40 @@ export default function ProviderEarningsPage() {
 
   // Calcular ganancias reales basadas en los pedidos
   const calculateEarnings = () => {
-    if (!orders.length) return { total: 0, jobs: 0, average: 0 };
+    if (!orders.length) return { total: 0, jobs: 0, average: 0, totalCommissions: 0 };
 
-    const completedOrders = orders.filter(order => order.status === 'COMPLETED');
-    const total = completedOrders.reduce((sum, order) => sum + order.price, 0);
-    const jobs = completedOrders.length;
+    // Incluir pedidos completados Y pagados (ACCEPTED/IN_PROGRESS con pago confirmado)
+    const paidOrders = orders.filter(order => 
+      order.status === 'COMPLETED' || 
+      (order.paymentStatus === 'PAID' && (order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS'))
+    );
+    
+    let total = 0;
+    let totalCommissions = 0;
+    
+    paidOrders.forEach(order => {
+      // Usar providerEarnings guardado en BD si existe
+      if (order.providerEarnings) {
+        total += order.providerEarnings;
+        // La comisión es la diferencia entre precio y lo que recibe
+        totalCommissions += (order.price - order.providerEarnings);
+      } else {
+        // Fallback: calcular dinámicamente
+        if (!order.paymentMethod || order.paymentMethod === 'cash') {
+          total += order.price;
+          totalCommissions += 0;
+        } else {
+          const breakdown = pricingService.calculatePricingLocal(order.price);
+          total += breakdown.providerEarnings;
+          totalCommissions += (breakdown.platformEarnings + breakdown.wompiCost);
+        }
+      }
+    });
+    
+    const jobs = paidOrders.length;
     const average = jobs > 0 ? total / jobs : 0;
 
-    return { total, jobs, average };
+    return { total, jobs, average, totalCommissions };
   };
 
   const realEarnings = calculateEarnings();
@@ -95,10 +122,10 @@ export default function ProviderEarningsPage() {
       date: order.date,
       client: order.user?.name || 'Cliente',
       service: order.service,
-      amount: order.price,
-      status: order.status === 'COMPLETED' ? 'paid' : 'pending',
+      amount: order.providerEarnings || order.price,
+      status: (order.status === 'COMPLETED' || order.paymentStatus === 'PAID') ? 'paid' : 'pending',
       method: order.paymentMethod === 'card' ? 'card' : 'cash',
-      commission: order.price * 0.1 // 10% de comisión simulada
+      commission: order.providerEarnings ? (order.price - order.providerEarnings) : 0
     }))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -141,8 +168,8 @@ export default function ProviderEarningsPage() {
     .filter(p => p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalCommissions = paymentHistory
-    .reduce((sum, p) => sum + p.commission, 0);
+  // Usar las comisiones ya calculadas en realEarnings
+  const totalCommissions = realEarnings.totalCommissions;
 
   if (loading) {
     return (
@@ -271,7 +298,7 @@ export default function ProviderEarningsPage() {
                     <TrendingUp className="w-5 h-5 text-purple-600" />
                     <span className="text-sm font-medium text-gray-600">Comisiones</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">${totalCommissions}</p>
+                  <p className="text-2xl font-bold text-gray-900">${Math.round(totalCommissions).toLocaleString()}</p>
                   <p className="text-sm text-gray-600">Total pagado</p>
                 </div>
               </div>

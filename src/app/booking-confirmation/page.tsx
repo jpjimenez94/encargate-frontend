@@ -3,15 +3,19 @@
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { CheckCircle, Calendar, Clock, User, Home, MessageCircle } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, User, Home, MessageCircle, MapPin, Briefcase, DollarSign } from 'lucide-react';
 
 function BookingConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const encargadoName = searchParams?.get('encargado') || 'Encargado';
+  const service = searchParams?.get('service') || 'Servicio';
   const date = searchParams?.get('date') || '';
   const time = searchParams?.get('time') || '';
+  const price = searchParams?.get('price') || '0';
+  const address = searchParams?.get('address') || '';
+  const orderId = searchParams?.get('orderId') || '';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -42,6 +46,14 @@ function BookingConfirmationContent() {
             
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
+                <Briefcase className="w-5 h-5 text-orange-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Servicio</p>
+                  <p className="font-medium text-gray-900">{service}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
                 <User className="w-5 h-5 text-orange-500" />
                 <div>
                   <p className="text-sm text-gray-600">Encargado</p>
@@ -62,6 +74,24 @@ function BookingConfirmationContent() {
                 <div>
                   <p className="text-sm text-gray-600">Hora</p>
                   <p className="font-medium text-gray-900">{time}</p>
+                </div>
+              </div>
+              
+              {address && (
+                <div className="flex items-center space-x-3">
+                  <MapPin className="w-5 h-5 text-orange-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Dirección</p>
+                    <p className="font-medium text-gray-900">{address}</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-3 pt-3 border-t border-gray-200">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Total a pagar</p>
+                  <p className="text-xl font-bold text-green-600">${parseFloat(price).toLocaleString('es-CO')} COP</p>
                 </div>
               </div>
             </div>
@@ -88,6 +118,16 @@ function BookingConfirmationContent() {
 
           {/* Botones de acción */}
           <div className="space-y-3">
+            {orderId && (
+              <button
+                onClick={() => router.push(`/checkout-co/${orderId}`)}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-lg"
+              >
+                <CheckCircle className="w-5 h-5" />
+                <span>Proceder al Pago</span>
+              </button>
+            )}
+            
             <button
               onClick={() => router.push('/orders')}
               className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center justify-center space-x-2"

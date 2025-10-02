@@ -46,7 +46,7 @@ const CIUDADES_COLOMBIA = [
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -116,6 +116,12 @@ export default function ProfilePage() {
         avatarUrl: userData.avatar
       });
       
+      // Actualizar el contexto de Auth para que se refleje en toda la app
+      updateUser({
+        name: userData.name,
+        avatarUrl: userData.avatar
+      });
+      
       setIsEditing(false);
       
       // Mostrar mensaje de éxito con toast
@@ -171,12 +177,19 @@ export default function ProfilePage() {
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img
-                src={user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format'}
+                src={userData.avatar || user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format'}
                 alt={user?.name || 'Usuario'}
                 className="w-20 h-20 rounded-full border-4 border-white/20"
               />
+              {/* Botón para cambiar avatar */}
+              <button
+                onClick={() => setShowAvatarSelector(true)}
+                className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+              >
+                <Camera className="w-4 h-4 text-orange-600" />
+              </button>
               {user?.verified && (
-                <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
                   <Star className="w-3 h-3 text-white fill-current" />
                 </div>
               )}
@@ -385,6 +398,15 @@ export default function ProfilePage() {
         <div className="h-20"></div>
       </div>
       <Navbar activeRoute="profile" />
+      
+      {/* Avatar Selector Modal */}
+      {showAvatarSelector && (
+        <AvatarSelector
+          currentAvatar={userData.avatar || user?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+          onSelect={handleAvatarChange}
+          onClose={() => setShowAvatarSelector(false)}
+        />
+      )}
     </div>
   );
 }

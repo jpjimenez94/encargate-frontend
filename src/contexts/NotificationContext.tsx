@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { apiClient, Order } from '@/services/api';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface NotificationContextType {
   pendingOrders: Order[];
@@ -11,6 +12,7 @@ interface NotificationContextType {
   setShowNotificationPopup: (show: boolean) => void;
   refreshPendingOrders: () => Promise<void>;
   refreshClientNotifications: () => Promise<void>;
+  refreshOrders: () => Promise<void>; // Alias para refreshPendingOrders
   forceRefresh: () => Promise<void>; // Nuevo método para refresh inmediato
   resetNotifiedOrders: () => void; // Nuevo método para testing
   hasPendingOrders: boolean;
@@ -23,14 +25,41 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
+  
+  // 🔌 WebSocket connection
+  const { socket, isConnected } = useWebSocket(
+    user?.id || null,
+    user?.role || null
+  );
+  
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [clientNotifications, setClientNotifications] = useState<Order[]>([]);
   const [previousClientNotifications, setPreviousClientNotifications] = useState<Order[]>([]);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
   const [lastClientNotificationTime, setLastClientNotificationTime] = useState<number>(0);
-  const [notifiedOrders, setNotifiedOrders] = useState<Set<string>>(new Set());
+  const [notifiedOrders, setNotifiedOrders] = useState<Set<string>>(() => {
+    // Inicializar desde localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('notifiedOrders');
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch (e) {
+          console.error('Error parsing notifiedOrders from localStorage:', e);
+        }
+      }
+    }
+    return new Set();
+  });
   const [isProcessingNotifications, setIsProcessingNotifications] = useState(false);
+
+  // Guardar notifiedOrders en localStorage cuando cambie
+  useEffect(() => {
+    if (typeof window !== 'undefined' && notifiedOrders.size > 0) {
+      localStorage.setItem('notifiedOrders', JSON.stringify(Array.from(notifiedOrders)));
+    }
+  }, [notifiedOrders]);
 
   const refreshPendingOrders = async () => {
     if (!user || user.role !== 'ENCARGADO') {
@@ -49,19 +78,28 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     try {
       const orders = await apiClient.getMyOrders();
-      const pending = orders?.filter(order => order.status === 'PENDING') || [];
+      // Incluir pedidos PENDING y ACCEPTED con pago recién confirmado
+      const pending = orders?.filter(order => 
+        order.status === 'PENDING' || 
+        (order.status === 'ACCEPTED' && order.paymentStatus === 'PAID')
+      ) || [];
       
-      // Detectar nuevos pedidos pendientes
-      const previousPendingIds = new Set(pendingOrders.map(o => o.id));
-      const newPendingOrders = pending.filter(order => !previousPendingIds.has(order.id));
+      // Detectar nuevos pedidos o cambios de estado de pago
+      const previousOrdersMap = new Map(pendingOrders.map(o => [o.id, `${o.status}_${o.paymentStatus || 'null'}`]));
+      const newOrUpdatedOrders = pending.filter(order => {
+        const currentKey = `${order.status}_${order.paymentStatus || 'null'}`;
+        const previousKey = previousOrdersMap.get(order.id);
+        // Es nuevo si no existía, o si cambió el estado/pago
+        return !previousKey || previousKey !== currentKey;
+      });
       
       setPendingOrders(pending);
       
-      // Mostrar notificación si hay nuevos pedidos pendientes
-      if (newPendingOrders.length > 0) {
+      // Mostrar notificación si hay nuevos pedidos o pagos confirmados
+      if (newOrUpdatedOrders.length > 0) {
         setShowNotificationPopup(true);
         setLastNotificationTime(Date.now());
-        console.log(`🔔 Proveedor: ${newPendingOrders.length} nuevos pedidos pendientes detectados`);
+        console.log(`🔔 Proveedor: ${newOrUpdatedOrders.length} nuevos pedidos/pagos detectados`);
       }
     } catch (error) {
       console.error('Error loading pending orders:', error);
@@ -82,13 +120,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log('✅ Cliente autenticado, procediendo con refresh de notificaciones');
+    // console.log('✅ Cliente autenticado, procediendo con refresh de notificaciones');
 
     try {
       const orders = await apiClient.getMyOrders();
-      console.log('🔍 Cliente - Pedidos obtenidos:', orders?.length || 0);
+      // console.log('🔍 Cliente - Pedidos obtenidos:', orders?.length || 0);
       
-      // Filtrar pedidos con estados notificables (similar al proveedor con PENDING)
+      // Filtrar pedidos con estados notificables (incluyendo cambios de pago)
       const notifiableOrders = orders?.filter(order => 
         order.status === 'ACCEPTED' || 
         order.status === 'IN_PROGRESS' || 
@@ -96,34 +134,117 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         order.status === 'CANCELLED'
       ) || [];
       
-      console.log('🔍 Cliente - Pedidos notificables:', notifiableOrders.length);
+      // console.log('🔍 Cliente - Pedidos notificables:', notifiableOrders.length);
       
-      // Detectar NUEVOS pedidos notificables (similar a cómo el proveedor detecta nuevos PENDING)
-      const previousNotifiableIds = new Set(clientNotifications.map(o => o.id));
-      const newNotifiableOrders = notifiableOrders.filter(order => 
-        !previousNotifiableIds.has(order.id)
-      );
+      // Detectar NUEVOS pedidos que NO han sido notificados antes
+      // console.log('🔍 Cliente - Notificaciones ya vistas en memoria:', notifiedOrders.size);
+      
+      const newNotifiableOrders = notifiableOrders.filter(order => {
+        // Incluir paymentStatus en la clave para detectar cambios de pago
+        const notificationKey = `${order.id}_${order.status}_${order.paymentStatus || 'null'}`;
+        const isNew = !notifiedOrders.has(notificationKey);
+        // if (!isNew) {
+        //   console.log(`⏭️ Saltando notificación ya vista: ${order.id.slice(-4)}_${order.status}_${order.paymentStatus}`);
+        // }
+        return isNew;
+      });
+      
+      // console.log('🔍 Cliente - Notificaciones NUEVAS (no vistas):', newNotifiableOrders.length);
       
       // Actualizar lista de notificaciones
       setClientNotifications(notifiableOrders);
       
-      // Mostrar popup si hay NUEVOS pedidos notificables
+      // Mostrar popup SOLO si hay notificaciones realmente nuevas
       if (newNotifiableOrders.length > 0) {
+        // Marcar estas notificaciones como vistas
+        const newNotifiedOrders = new Set(notifiedOrders);
+        newNotifiableOrders.forEach(order => {
+          const notificationKey = `${order.id}_${order.status}_${order.paymentStatus || 'null'}`;
+          newNotifiedOrders.add(notificationKey);
+        });
+        setNotifiedOrders(newNotifiedOrders);
+        
         setShowNotificationPopup(true);
         setLastClientNotificationTime(Date.now());
-        console.log(`🔔 Cliente: ${newNotifiableOrders.length} nuevas notificaciones detectadas`);
-        console.log('🔔 Nuevas notificaciones:', newNotifiableOrders.map(o => ({ 
-          id: o.id.slice(-4), 
-          status: o.status,
-          service: o.service 
-        })));
+        // console.log(`🔔 Cliente: ${newNotifiableOrders.length} nuevas notificaciones detectadas`);
+        // console.log('🔔 Nuevas notificaciones:', newNotifiableOrders.map(o => ({ 
+        //   id: o.id.slice(-4), 
+        //   status: o.status,
+        //   service: o.service 
+        // })));
       }
-    } catch (error) {
+      // else {
+      //   console.log('✅ No hay notificaciones nuevas para mostrar');
+      // }
+    } catch (error: any) {
+      // Si es error de autenticación, no seguir intentando
+      if (error?.message?.includes('Unauthorized') || error?.message?.includes('401')) {
+        console.log('🚫 Error de autenticación, deteniendo refresh de notificaciones');
+        return;
+      }
       console.error('Error loading client notifications:', error);
     }
   };
 
+  // 🔌 WebSocket Event Listeners - Reemplaza el polling
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    console.log('🔌 NotificationContext: Configurando listeners de WebSocket');
+
+    // Listener para nuevos pedidos (proveedores)
+    socket.on('newOrder', (data: any) => {
+      console.log('📥 WebSocket: Nuevo pedido recibido:', data);
+      refreshPendingOrders(); // Actualizar lista de pedidos
+      setShowNotificationPopup(true); // Mostrar popup
+    });
+
+    // Listener para cambios de estado de pedido
+    socket.on('orderStatusChange', (data: any) => {
+      console.log('📥 WebSocket: Cambio de estado de pedido:', data);
+      if (user?.role === 'ENCARGADO') {
+        refreshPendingOrders();
+      } else {
+        refreshClientNotifications();
+      }
+    });
+
+    // Listener para pago confirmado
+    socket.on('paymentConfirmed', (data: any) => {
+      console.log('📥 WebSocket: Pago confirmado:', data);
+      if (user?.role === 'ENCARGADO') {
+        refreshPendingOrders();
+      } else {
+        refreshClientNotifications();
+      }
+    });
+
+    // Listener para pedido completado
+    socket.on('orderCompleted', (data: any) => {
+      console.log('📥 WebSocket: Pedido completado:', data);
+      refreshClientNotifications();
+      setShowNotificationPopup(true);
+    });
+
+    // Listener para nueva reseña (proveedores)
+    socket.on('newReview', (data: any) => {
+      console.log('📥 WebSocket: Nueva reseña recibida:', data);
+      // Aquí podrías mostrar una notificación específica de reseña
+    });
+
+    // Cleanup
+    return () => {
+      console.log('🔌 NotificationContext: Removiendo listeners de WebSocket');
+      socket.off('newOrder');
+      socket.off('orderStatusChange');
+      socket.off('paymentConfirmed');
+      socket.off('orderCompleted');
+      socket.off('newReview');
+    };
+  }, [socket, isConnected, user]);
+
   // Verificar pedidos pendientes cada 30 segundos (para encargados)
+  // ⚠️ DEPRECADO: Este polling será reemplazado completamente por WebSocket
   useEffect(() => {
     // No hacer nada si AuthContext aún está cargando
     if (isLoading) {
@@ -150,7 +271,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Delay inicial para evitar requests inmediatos
     const initialTimeout = setTimeout(() => {
       refreshPendingOrders();
-      interval = setInterval(refreshPendingOrders, 5000); // 5 segundos para proveedores
+      interval = setInterval(refreshPendingOrders, 30000); // 30 segundos para polling de pedidos
     }, 2000); // 2 segundos de delay
 
     return () => {
@@ -186,7 +307,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Delay inicial para evitar requests inmediatos
     const initialTimeout = setTimeout(() => {
       refreshClientNotifications();
-      interval = setInterval(refreshClientNotifications, 5000); // 5 segundos (igual que proveedor)
+      interval = setInterval(refreshClientNotifications, 3000); // 3 segundos para detectar cambios de pago más rápido
     }, 2000); // 2 segundos de delay
 
     return () => {
@@ -285,6 +406,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setShowNotificationPopup,
     refreshPendingOrders,
     refreshClientNotifications,
+    refreshOrders: refreshPendingOrders, // Alias para compatibilidad
     forceRefresh,
     resetNotifiedOrders,
     hasPendingOrders: pendingOrders.length > 0,

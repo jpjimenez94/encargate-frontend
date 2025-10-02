@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ToastProvider } from "@/contexts/ToastContext";
+import PushNotifications from "@/components/PushNotifications";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
           <NotificationProvider>
             <ToastProvider>
               {children}
+              <PushNotifications />
             </ToastProvider>
           </NotificationProvider>
         </AuthProvider>

@@ -49,6 +49,37 @@ export default function OrderDetailsPage() {
     }
   }, [orderId, user, router]);
 
+  // Tracking en tiempo real - Polling cada 10 segundos
+  useEffect(() => {
+    if (!orderId || !user || order?.status === 'COMPLETED' || order?.status === 'CANCELLED') {
+      return;
+    }
+
+    const refreshOrder = async () => {
+      try {
+        const updatedOrder = await apiClient.getOrderById(orderId);
+        // Solo actualizar si el estado cambió
+        if (updatedOrder.status !== order?.status) {
+          setOrder(updatedOrder);
+          // Mostrar notificación del navegador si está disponible
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Estado del Pedido Actualizado', {
+              body: `Tu pedido ahora está: ${getStatusText(updatedOrder.status)}`,
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing order:', error);
+      }
+    };
+
+    const interval = setInterval(refreshOrder, 10000); // 10 segundos
+
+    return () => clearInterval(interval);
+  }, [orderId, user, order?.status]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED': return 'bg-green-100 text-green-800';
@@ -110,6 +141,12 @@ export default function OrderDetailsPage() {
 
   const handleOrderAction = async (action: 'accept' | 'reject' | 'complete') => {
     try {
+      // Verificar pago antes de completar
+      if (action === 'complete' && order && order.paymentStatus !== 'PAID') {
+        showError('Pago Requerido', 'El cliente debe completar el pago antes de que puedas marcar el servicio como completado.');
+        return;
+      }
+
       let newStatus = '';
       switch (action) {
         case 'accept':
@@ -185,15 +222,126 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        {/* Estado del pedido */}
-        <div className="p-4 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <span className={`px-3 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-              {getStatusText(order.status)}
-            </span>
-            <span className="text-sm text-gray-500">
-              {new Date(order.createdAt).toLocaleDateString('es-ES')}
-            </span>
+        {/* Timeline de Estados */}
+        <div className="p-6 bg-white border-b border-gray-200">
+          <h2 className="font-semibold text-gray-900 mb-4">Estado del Pedido</h2>
+          
+          {/* Timeline Visual */}
+          <div className="relative">
+            {/* Línea vertical */}
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+            
+            {/* Estados */}
+            <div className="space-y-6">
+              {/* PENDING */}
+              <div className="relative flex items-start">
+                <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full ${
+                  order.status === 'PENDING' || order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' || order.status === 'COMPLETED'
+                    ? 'bg-blue-500'
+                    : 'bg-gray-300'
+                }`}>
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="font-medium text-gray-900">Pedido Creado</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(order.createdAt).toLocaleString('es-ES')}
+                  </p>
+                </div>
+              </div>
+
+              {/* ACCEPTED */}
+              <div className="relative flex items-start">
+                <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full ${
+                  order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' || order.status === 'COMPLETED'
+                    ? 'bg-green-500'
+                    : order.status === 'PENDING'
+                    ? 'bg-gray-300 animate-pulse'
+                    : 'bg-gray-300'
+                }`}>
+                  {order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' || order.status === 'COMPLETED' ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="font-medium text-gray-900">Pedido Aceptado</p>
+                  <p className="text-sm text-gray-500">
+                    {order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' || order.status === 'COMPLETED'
+                      ? 'El encargado aceptó tu pedido'
+                      : 'Esperando confirmación del encargado'}
+                  </p>
+                </div>
+              </div>
+
+              {/* IN_PROGRESS */}
+              <div className="relative flex items-start">
+                <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full ${
+                  order.status === 'IN_PROGRESS' || order.status === 'COMPLETED'
+                    ? 'bg-blue-500'
+                    : order.status === 'ACCEPTED'
+                    ? 'bg-gray-300 animate-pulse'
+                    : 'bg-gray-300'
+                }`}>
+                  {order.status === 'IN_PROGRESS' || order.status === 'COMPLETED' ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="font-medium text-gray-900">En Progreso</p>
+                  <p className="text-sm text-gray-500">
+                    {order.status === 'IN_PROGRESS' || order.status === 'COMPLETED'
+                      ? 'El encargado está trabajando en tu pedido'
+                      : 'El trabajo comenzará pronto'}
+                  </p>
+                </div>
+              </div>
+
+              {/* COMPLETED */}
+              <div className="relative flex items-start">
+                <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full ${
+                  order.status === 'COMPLETED'
+                    ? 'bg-green-500'
+                    : order.status === 'IN_PROGRESS'
+                    ? 'bg-gray-300 animate-pulse'
+                    : 'bg-gray-300'
+                }`}>
+                  {order.status === 'COMPLETED' ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="font-medium text-gray-900">Completado</p>
+                  <p className="text-sm text-gray-500">
+                    {order.status === 'COMPLETED'
+                      ? '¡Servicio finalizado exitosamente!'
+                      : 'El servicio será completado pronto'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Estado actual destacado */}
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Estado Actual</p>
+                <p className="text-lg font-bold text-blue-900">{getStatusText(order.status)}</p>
+              </div>
+              <div className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                {order.status === 'PENDING' && '⏳'}
+                {order.status === 'ACCEPTED' && '✅'}
+                {order.status === 'IN_PROGRESS' && '🔧'}
+                {order.status === 'COMPLETED' && '🎉'}
+                {order.status === 'CANCELLED' && '❌'}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -347,17 +495,62 @@ export default function OrderDetailsPage() {
               )}
               
               {(order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS') && (
-                <button 
-                  onClick={() => handleOrderAction('complete')}
-                  className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Marcar como Completado
-                </button>
+                order.paymentStatus === 'PAID' ? (
+                  <button 
+                    onClick={() => handleOrderAction('complete')}
+                    className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                  >
+                    Marcar como Completado
+                  </button>
+                ) : (
+                  <button 
+                    disabled
+                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-medium cursor-not-allowed"
+                    title="El cliente debe completar el pago antes de marcar como completado"
+                  >
+                    Pendiente de Pago
+                  </button>
+                )
               )}
             </>
           ) : (
             // Acciones para clientes
             <>
+              {/* Botón de pago para pedidos aceptados pero no pagados */}
+              {order.status === 'ACCEPTED' && order.paymentStatus !== 'PAID' && (
+                <div className="space-y-3">
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-3">
+                    <div className="flex items-center space-x-2 text-green-800 mb-2">
+                      <CheckCircle className="w-5 h-5" />
+                      <p className="font-semibold">¡Pedido Aceptado!</p>
+                    </div>
+                    <p className="text-sm text-green-700">
+                      El proveedor aceptó tu solicitud. Ahora puedes proceder al pago para confirmar el servicio.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => router.push(`/checkout-co/${order.id}`)}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center space-x-2"
+                  >
+                    <span>💳</span>
+                    <span>Proceder al Pago</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Confirmación de pago realizado */}
+              {order.status === 'ACCEPTED' && order.paymentStatus === 'PAID' && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-3">
+                  <div className="flex items-center space-x-2 text-blue-800 mb-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <p className="font-semibold">¡Pago Confirmado!</p>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Tu pago ha sido procesado exitosamente. El proveedor puede proceder con el servicio.
+                  </p>
+                </div>
+              )}
+              
               {order.status === 'PENDING' && (
                 <button 
                   onClick={handleCancelOrder}

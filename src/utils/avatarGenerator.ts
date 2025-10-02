@@ -41,35 +41,50 @@ export const generateComicAvatar = (name: string, email: string): string => {
 // Función para obtener avatares predefinidos por categorías
 export const getAvatarsByCategory = () => {
   return {
-    fun: [
-      'https://api.dicebear.com/7.x/fun-emoji/svg?seed=fun1&size=200',
-      'https://api.dicebear.com/7.x/fun-emoji/svg?seed=fun2&size=200',
-      'https://api.dicebear.com/7.x/fun-emoji/svg?seed=fun3&size=200',
-      'https://api.dicebear.com/7.x/fun-emoji/svg?seed=fun4&size=200',
+    // Profesionales de servicios del hogar
+    hogar: [
+      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop&crop=face',
     ],
-    adventurer: [
-      'https://api.dicebear.com/7.x/adventurer/svg?seed=adv1&size=200',
-      'https://api.dicebear.com/7.x/adventurer/svg?seed=adv2&size=200',
-      'https://api.dicebear.com/7.x/adventurer/svg?seed=adv3&size=200',
-      'https://api.dicebear.com/7.x/adventurer/svg?seed=adv4&size=200',
+    // Profesionales de belleza y cuidado personal
+    belleza: [
+      'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face',
     ],
-    bottts: [
-      'https://api.dicebear.com/7.x/bottts/svg?seed=bot1&size=200',
-      'https://api.dicebear.com/7.x/bottts/svg?seed=bot2&size=200',
-      'https://api.dicebear.com/7.x/bottts/svg?seed=bot3&size=200',
-      'https://api.dicebear.com/7.x/bottts/svg?seed=bot4&size=200',
+    // Profesionales de tecnología
+    tecnologia: [
+      'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1557862921-37829c790f19?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&h=200&fit=crop&crop=face',
     ],
-    personas: [
-      'https://api.dicebear.com/7.x/personas/svg?seed=per1&size=200',
-      'https://api.dicebear.com/7.x/personas/svg?seed=per2&size=200',
-      'https://api.dicebear.com/7.x/personas/svg?seed=per3&size=200',
-      'https://api.dicebear.com/7.x/personas/svg?seed=per4&size=200',
+    // Profesionales de salud y bienestar
+    salud: [
+      'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=200&h=200&fit=crop&crop=face',
     ],
-    pixelArt: [
-      'https://api.dicebear.com/7.x/pixel-art/svg?seed=pix1&size=200',
-      'https://api.dicebear.com/7.x/pixel-art/svg?seed=pix2&size=200',
-      'https://api.dicebear.com/7.x/pixel-art/svg?seed=pix3&size=200',
-      'https://api.dicebear.com/7.x/pixel-art/svg?seed=pix4&size=200',
+    // Profesionales diversos
+    general: [
+      'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1546961329-78bef0414d7c?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1601455763557-db1bea8a9a5a?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=200&h=200&fit=crop&crop=face',
     ]
   };
 };

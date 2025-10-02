@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, CheckCircle, XCircle, AlertCircle, Star, Filter, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, CheckCircle, XCircle, AlertCircle, Star, Filter, Search, RefreshCw } from 'lucide-react';
 import ProviderNavbar from '@/components/ProviderNavbar';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiClient, Order } from '@/services/api';
+import { pricingService } from '@/services/pricing';
 
 export default function ProviderOrdersPage() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function ProviderOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
   // Cargar pedidos del encargado autenticado
   useEffect(() => {
@@ -32,6 +35,7 @@ export default function ProviderOrdersPage() {
         setLoading(true);
         const providerOrders = await apiClient.getMyOrders();
         setOrders(providerOrders || []);
+        setLastUpdate(new Date());
       } catch (error) {
         console.error('Error loading provider orders:', error);
         setOrders([]);
@@ -42,6 +46,33 @@ export default function ProviderOrdersPage() {
 
     loadOrders();
   }, [user, router]);
+
+  // Polling automático para actualizar estados de pago
+  useEffect(() => {
+    if (!user || user.role !== 'ENCARGADO') return;
+
+    const refreshOrders = async () => {
+      try {
+        const updatedOrders = await apiClient.getMyOrders();
+        setOrders(prevOrders => {
+          // Solo actualizar si hay cambios reales
+          const hasChanges = JSON.stringify(prevOrders) !== JSON.stringify(updatedOrders);
+          if (hasChanges) {
+            console.log('🔄 Orders updated with new payment status');
+            setLastUpdate(new Date());
+            return updatedOrders || [];
+          }
+          return prevOrders;
+        });
+      } catch (error) {
+        console.error('Error refreshing orders:', error);
+      }
+    };
+
+    // Actualizar cada 10 segundos
+    const interval = setInterval(refreshOrders, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const filteredOrders = orders.filter(order => {
     const matchesTab = activeTab === 'all' || 
@@ -55,6 +86,21 @@ export default function ProviderOrdersPage() {
     
     return matchesTab && matchesSearch;
   });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const updatedOrders = await apiClient.getMyOrders();
+      setOrders(updatedOrders || []);
+      setLastUpdate(new Date());
+      showSuccess('Actualizado', 'Los pedidos han sido actualizados');
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+      showError('Error', 'No se pudieron actualizar los pedidos');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,6 +135,15 @@ export default function ProviderOrdersPage() {
 
   const handleOrderAction = async (orderId: string, action: 'accept' | 'reject' | 'complete') => {
     try {
+      // Verificar pago antes de completar
+      if (action === 'complete') {
+        const order = orders.find(o => o.id === orderId);
+        if (order && order.paymentStatus !== 'PAID') {
+          showError('Pago Requerido', 'El cliente debe completar el pago antes de que puedas marcar el servicio como completado.');
+          return;
+        }
+      }
+
       let newStatus = '';
       switch (action) {
         case 'accept':
@@ -158,8 +213,27 @@ export default function ProviderOrdersPage() {
       <div className="max-w-md mx-auto bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4">
-          <h1 className="text-xl font-bold">Mis Pedidos</h1>
-          <p className="text-blue-100 text-sm">Gestiona tus servicios</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold">Mis Pedidos</h1>
+              <div className="flex items-center space-x-2">
+                <p className="text-blue-100 text-sm">Gestiona tus servicios</p>
+                {lastUpdate && (
+                  <span className="text-blue-200 text-xs">
+                    • Actualizado {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors disabled:opacity-50"
+              title="Actualizar pedidos"
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Búsqueda */}
@@ -252,49 +326,107 @@ export default function ProviderOrdersPage() {
                   <p className="text-sm text-gray-700 mb-3">{order.description}</p>
                 )}
 
-                {/* Precio y acciones */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="text-lg font-bold text-gray-900">
-                    ${order.price.toLocaleString()}
+                {/* Precio y estado de pago */}
+                <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total del servicio</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        ${order.price.toLocaleString()}
+                      </p>
+                      {/* Mostrar lo que recibirá el proveedor si el pago está confirmado */}
+                      {order.paymentStatus === 'PAID' && order.paymentMethod !== 'cash' && (() => {
+                        const breakdown = pricingService.calculatePricingLocal(order.price);
+                        return (
+                          <p className="text-xs text-green-700 mt-1">
+                            💰 Recibirás: ${Math.round(breakdown.providerEarnings).toLocaleString()} COP
+                          </p>
+                        );
+                      })()}
+                    </div>
+                    {/* Indicador de estado de pago */}
+                    {order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS' ? (
+                      <div className="text-right">
+                        {order.paymentStatus === 'PAID' ? (
+                          <div className="flex items-center text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            <span className="text-sm font-medium">Pago Confirmado</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-orange-600 bg-orange-50 px-3 py-2 rounded-lg">
+                            <Clock className="w-4 h-4 mr-2" />
+                            <span className="text-sm font-medium">Esperando Pago</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : order.status === 'COMPLETED' ? (
+                      <div className="flex items-center text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-medium">Servicio Completado</span>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="flex space-x-2">
-                    {order.status === 'PENDING' && (
-                      <>
-                        <button 
-                          onClick={() => handleOrderAction(order.id, 'accept')}
-                          className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors"
-                        >
-                          Aceptar
-                        </button>
-                        <button 
-                          onClick={() => handleOrderAction(order.id, 'reject')}
-                          className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition-colors"
-                        >
-                          Rechazar
-                        </button>
-                      </>
-                    )}
-                    {(order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS') && (
+                </div>
+
+                {/* Acciones */}
+                <div className="flex flex-wrap gap-2">
+                  {order.status === 'PENDING' && (
+                    <>
+                      <button 
+                        onClick={() => handleOrderAction(order.id, 'accept')}
+                        className="flex-1 min-w-0 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Aceptar
+                      </button>
+                      <button 
+                        onClick={() => handleOrderAction(order.id, 'reject')}
+                        className="flex-1 min-w-0 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Rechazar
+                      </button>
+                    </>
+                  )}
+                  
+                  {(order.status === 'ACCEPTED' || order.status === 'IN_PROGRESS') && (
+                    order.paymentStatus === 'PAID' ? (
                       <button 
                         onClick={() => handleOrderAction(order.id, 'complete')}
-                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
+                        className="flex-1 min-w-0 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
                       >
-                        Completar
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Completar Servicio
                       </button>
-                    )}
+                    ) : (
+                      <button 
+                        disabled
+                        className="flex-1 min-w-0 px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
+                        title="El cliente debe pagar antes de completar el servicio"
+                      >
+                        <Clock className="w-4 h-4 mr-1" />
+                        Pendiente de Pago
+                      </button>
+                    )
+                  )}
+                  
+                  {/* Botones secundarios */}
+                  <div className="flex gap-2 w-full mt-2">
                     <button 
                       onClick={() => handleContactClient(order)}
-                      className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors"
+                      className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                       title="Contactar cliente"
                     >
-                      <MessageCircle className="w-4 h-4" />
+                      <MessageCircle className="w-4 h-4 mr-1" />
+                      Contactar
                     </button>
                     <button 
                       onClick={() => handleViewDetails(order.id)}
-                      className="px-3 py-1 bg-purple-500 text-white text-sm rounded-md hover:bg-purple-600 transition-colors"
+                      className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 text-sm font-medium rounded-lg hover:bg-purple-200 transition-colors flex items-center justify-center"
                       title="Ver detalles"
                     >
-                      Ver
+                      <Star className="w-4 h-4 mr-1" />
+                      Ver Detalles
                     </button>
                   </div>
                 </div>

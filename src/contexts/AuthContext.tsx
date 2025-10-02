@@ -10,7 +10,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'CLIENTE' | 'ENCARGADO';
+  role: 'CLIENTE' | 'ENCARGADO' | 'ADMIN';
   avatarUrl?: string;
   location?: string;
   verified: boolean;
@@ -46,6 +46,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   isClient: () => boolean;
   isProvider: () => boolean;
   redirectToCorrectHome: () => void;
@@ -61,16 +62,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Simular autenticación persistente
   useEffect(() => {
+    console.log('🔄 AuthContext: Cargando usuario desde localStorage...');
     const savedUser = localStorage.getItem('currentUser');
     const savedToken = localStorage.getItem('auth_token');
     
+    console.log('🔍 AuthContext: savedUser:', savedUser);
+    console.log('🔍 AuthContext: savedToken:', savedToken ? 'Existe' : 'No existe');
+    
     if (savedUser && savedToken) {
       const userData = JSON.parse(savedUser);
+      console.log('✅ AuthContext: Datos de usuario encontrados:', userData);
       setUser(userData);
+      
+      // Restaurar cookies si no existen
+      document.cookie = `token=${savedToken}; path=/; max-age=604800`;
+      document.cookie = `userRole=${userData.role}; path=/; max-age=604800`;
       
       // CRÍTICO: Restaurar el token en apiClient
       apiClient.setToken(savedToken);
-      console.log('🔑 AuthContext: Token restaurado en apiClient al cargar la página');
+      console.log('🔑 AuthContext: Token y cookies restaurados al cargar la página');
       
       // Si es encargado, buscar sus datos adicionales
       if (userData.role === 'ENCARGADO') {
@@ -85,8 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setEncargado(completeEncargado);
         }
       }
+    } else {
+      console.log('❌ AuthContext: No se encontraron datos de usuario en localStorage');
     }
     setIsLoading(false);
+    console.log('✅ AuthContext: Carga inicial completada');
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -128,9 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('currentUser', JSON.stringify(userData));
       localStorage.setItem('auth_token', response.token);
       
+      // Guardar rol y token en cookies para el middleware
+      document.cookie = `token=${response.token}; path=/; max-age=604800`; // 7 días
+      document.cookie = `userRole=${userData.role}; path=/; max-age=604800`; // 7 días
+      
       // CRÍTICO: Actualizar el token en apiClient
       apiClient.setToken(response.token);
-      console.log('🔑 AuthContext: Token actualizado en apiClient');
+      console.log('🔑 AuthContext: Token y rol guardados en cookies y apiClient');
       
       console.log('💾 AuthContext: Datos guardados en localStorage');
 
@@ -187,9 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('auth_token');
     
+    // Limpiar cookies
+    document.cookie = 'token=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    
     // CRÍTICO: Limpiar el token del apiClient
     apiClient.clearToken();
-    console.log('🔑 AuthContext: Token limpiado del apiClient');
+    console.log('🔑 AuthContext: Token y cookies limpiados');
     
     router.push('/login');
   };
@@ -203,12 +224,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const redirectToCorrectHome = () => {
-    if (isClient()) {
+    if (user?.role === 'ADMIN') {
+      router.push('/admin');
+    } else if (isClient()) {
       router.push('/home');
     } else if (isProvider()) {
       router.push('/provider-home');
     } else {
       router.push('/login');
+    }
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      console.log('✅ AuthContext: Usuario actualizado', updatedUser);
     }
   };
 
@@ -218,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     logout,
+    updateUser,
     isClient,
     isProvider,
     redirectToCorrectHome

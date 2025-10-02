@@ -4,18 +4,21 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit3, Camera, Star, MapPin, Calendar, Award, DollarSign, Clock, Users, Settings, Bell, LogOut, ChevronRight, Save, X } from 'lucide-react';
 import ProviderNavbar from '@/components/ProviderNavbar';
+import AvatarSelector from '@/components/AvatarSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiClient, Encargado } from '@/services/api';
 
 export default function ProviderProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'services' | 'availability' | 'settings'>('profile');
   const [encargado, setEncargado] = useState<Encargado | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
   
   // Cargar datos del encargado autenticado
   useEffect(() => {
@@ -66,8 +69,13 @@ export default function ProviderProfilePage() {
         services: encargado.services,
         available: encargado.available
       });
+      setAvatarUrl(encargado.avatar || '');
     }
   }, [encargado]);
+
+  const handleAvatarChange = (newAvatar: string) => {
+    setAvatarUrl(newAvatar);
+  };
 
   const handleSave = async () => {
     try {
@@ -87,12 +95,19 @@ export default function ProviderProfilePage() {
         priceMin: profileData.priceMin,
         priceMax: profileData.priceMax,
         services: profileData.services,
-        available: profileData.available
+        available: profileData.available,
+        avatar: avatarUrl
       });
       
       // Recargar datos actualizados
       const updatedProfile = await apiClient.getEncargadoProfile();
       setEncargado(updatedProfile);
+      
+      // Actualizar el contexto de Auth para que se refleje en toda la app
+      updateUser({
+        name: profileData.name,
+        avatarUrl: avatarUrl
+      });
       
       setIsEditing(false);
       showSuccess('¡Perfil Actualizado!', 'Tus cambios han sido guardados exitosamente.');
@@ -211,12 +226,15 @@ export default function ProviderProfilePage() {
           <div className="flex items-center space-x-4 mb-4">
             <div className="relative">
               <img
-                src={encargado.avatar}
+                src={avatarUrl || encargado.avatar}
                 alt={encargado.name}
                 className="w-20 h-20 rounded-full border-4 border-white/20"
               />
               {isEditing && (
-                <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+                <button 
+                  onClick={() => setShowAvatarSelector(true)}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white hover:bg-blue-600 transition-colors"
+                >
                   <Camera className="w-4 h-4 text-white" />
                 </button>
               )}
@@ -521,6 +539,15 @@ export default function ProviderProfilePage() {
       </div>
 
       <ProviderNavbar activeRoute="profile" />
+      
+      {/* Avatar Selector Modal */}
+      {showAvatarSelector && (
+        <AvatarSelector
+          currentAvatar={avatarUrl || encargado?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+          onSelect={handleAvatarChange}
+          onClose={() => setShowAvatarSelector(false)}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Camera, X, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiClient, Order } from '@/services/api';
@@ -17,7 +17,13 @@ export default function RateOrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const orderId = params.id as string;
+
+  // Tags predefinidos para calificación rápida
+  const positiveTags = ['Puntual', 'Profesional', 'Amable', 'Limpio', 'Eficiente', 'Recomendado'];
+  const negativeTags = ['Impuntual', 'Descuidado', 'Caro', 'Incompleto'];
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -57,6 +63,34 @@ export default function RateOrderPage() {
     }
   }, [orderId, user, router]);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (photos.length >= 5) {
+        showError('Límite alcanzado', 'Máximo 5 fotos permitidas');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotos((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
   const handleSubmitRating = async () => {
     if (rating === 0) {
       showError('Error', 'Por favor selecciona una calificación');
@@ -65,9 +99,14 @@ export default function RateOrderPage() {
 
     try {
       setSubmitting(true);
-      await apiClient.addOrderReview(orderId, rating, comment);
+      // Combinar comentario con tags seleccionados
+      const fullComment = selectedTags.length > 0 
+        ? `${comment}\n\nEtiquetas: ${selectedTags.join(', ')}`
+        : comment;
+      
+      await apiClient.addOrderReview(orderId, rating, fullComment);
       showSuccess('¡Calificación Enviada!', 'Tu reseña ha sido registrada exitosamente');
-      router.push(`/order/${orderId}`);
+      router.push('/orders');
     } catch (error) {
       console.error('Error submitting rating:', error);
       showError('Error', 'No se pudo enviar la calificación');
@@ -179,6 +218,69 @@ export default function RateOrderPage() {
                 {rating === 5 && 'Excelente'}
               </p>
             </div>
+          </div>
+
+          {/* Tags rápidos */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Etiquetas rápidas
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {(rating >= 4 ? positiveTags : rating <= 2 ? negativeTags : [...positiveTags, ...negativeTags]).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    selectedTags.includes(tag)
+                      ? 'bg-yellow-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Subir fotos */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Fotos del trabajo (opcional)
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {photos.map((photo, index) => (
+                <div key={index} className="relative aspect-square">
+                  <img
+                    src={photo}
+                    alt={`Foto ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <button
+                    onClick={() => removePhoto(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              
+              {photos.length < 5 && (
+                <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-yellow-500 hover:bg-yellow-50 transition-colors">
+                  <Camera className="w-8 h-8 text-gray-400 mb-1" />
+                  <span className="text-xs text-gray-500">Agregar foto</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    multiple
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {photos.length}/5 fotos • Máximo 5 fotos
+            </p>
           </div>
 
           {/* Comentario */}

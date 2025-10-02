@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, TrendingUp, DollarSign, Star, Clock, MapPin, Phone, MessageCircle, Settings, Bell, BarChart3, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, TrendingUp, DollarSign, Star, Clock, MapPin, Phone, MessageCircle, Settings, Bell, BarChart3, Users, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import ProviderNavbar from '@/components/ProviderNavbar';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiClient, Order } from '@/services/api';
+import { pricingService } from '@/services/pricing';
 
 export default function ProviderHomePage() {
   const router = useRouter();
@@ -19,6 +20,24 @@ export default function ProviderHomePage() {
   const [providerData, setProviderData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Función para refrescar estadísticas
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const orderStats = await apiClient.getOrderStats();
+      setStats(orderStats);
+      const orders = await apiClient.getMyOrders();
+      setRecentOrders(orders?.slice(0, 3) || []);
+      showSuccess('Actualizado', 'Estadísticas actualizadas correctamente');
+    } catch (error) {
+      console.error('Error refreshing stats:', error);
+      showError('Error', 'No se pudieron actualizar las estadísticas');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Función para cambiar el estado de disponibilidad
   const toggleAvailability = async () => {
@@ -64,6 +83,7 @@ export default function ProviderHomePage() {
         // Obtener estadísticas reales de pedidos
         const orderStats = await apiClient.getOrderStats();
         setStats(orderStats);
+        console.log('📊 Estadísticas cargadas:', orderStats);
         
         // Obtener pedidos recientes del encargado
         const orders = await apiClient.getMyOrders();
@@ -78,6 +98,26 @@ export default function ProviderHomePage() {
 
     loadProviderData();
   }, [user, router]);
+
+  // Auto-refresh cada 30 segundos para mantener estadísticas actualizadas
+  useEffect(() => {
+    if (!user || user.role !== 'ENCARGADO') return;
+
+    const interval = setInterval(async () => {
+      try {
+        console.log('🔄 Auto-refresh de estadísticas...');
+        const orderStats = await apiClient.getOrderStats();
+        setStats(orderStats);
+        const orders = await apiClient.getMyOrders();
+        setRecentOrders(orders?.slice(0, 3) || []);
+        console.log('✅ Estadísticas actualizadas automáticamente');
+      } catch (error) {
+        console.error('Error en auto-refresh:', error);
+      }
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (loading || !user || !providerData || !stats) {
     return (
@@ -95,10 +135,20 @@ export default function ProviderHomePage() {
       case 'COMPLETED': return 'bg-green-100 text-green-800';
       case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800';
       case 'ACCEPTED': return 'bg-blue-100 text-blue-800';
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
       case 'CANCELLED': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Calcular ganancias reales del proveedor
+  const getProviderEarnings = (order: Order) => {
+    // Si no hay paymentMethod o es efectivo: recibe el precio completo
+    if (!order.paymentMethod || order.paymentMethod === 'cash') {
+      return order.price;
+    }
+    // Pagos digitales: calcular con comisiones
+    const breakdown = pricingService.calculatePricingLocal(order.price);
+    return Math.round(breakdown.providerEarnings);
   };
 
   const getStatusText = (status: string) => {
@@ -120,7 +170,7 @@ export default function ProviderHomePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <img
-                src={providerData.avatar || user.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format'}
+                src={user?.avatarUrl || providerData.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format'}
                 alt={providerData.name}
                 className="w-12 h-12 rounded-full border-2 border-white/20"
               />
@@ -130,6 +180,14 @@ export default function ProviderHomePage() {
               </div>
             </div>
             <div className="flex space-x-2">
+              <button 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors disabled:opacity-50"
+                title="Actualizar estadísticas"
+              >
+                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
               <button 
                 onClick={() => router.push('/notifications')}
                 className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
@@ -264,7 +322,12 @@ export default function ProviderHomePage() {
                             {order.time}
                           </div>
                         </div>
-                        <span className="font-semibold text-gray-900">${order.price}</span>
+                        <div className="text-right">
+                          <span className="font-semibold text-gray-900">${getProviderEarnings(order).toLocaleString()}</span>
+                          {order.paymentMethod !== 'cash' && (
+                            <p className="text-xs text-gray-500">Después de comisiones</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -333,13 +396,19 @@ export default function ProviderHomePage() {
                         </div>
                         <div className="flex items-center text-gray-600">
                           <Clock className="w-4 h-4 mr-1" />
-                          {order.time}
+                          {new Date(order.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                      <span className="font-semibold text-gray-900">${order.price}</span>
+                      <div className="text-right">
+                        <span className="font-semibold text-gray-900">${getProviderEarnings(order).toLocaleString()}</span>
+                        {order.paymentMethod !== 'cash' && (
+                          <p className="text-xs text-gray-500">Tu ganancia</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Detalles expandidos */}
                   <div className="flex space-x-2">
                     <button className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1">
                       <Phone className="w-4 h-4" />
@@ -390,8 +459,9 @@ export default function ProviderHomePage() {
                         <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('es-ES')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-gray-900">${order.price.toLocaleString()}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
+                        <p className="font-semibold text-gray-900">${getProviderEarnings(order).toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">Ganancia real</p>
+                        <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${
                           order.status === 'COMPLETED' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-yellow-100 text-yellow-800'

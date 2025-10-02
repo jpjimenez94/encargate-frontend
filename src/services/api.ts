@@ -1,17 +1,16 @@
 // API Service for Encárgate App
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 console.log('API_BASE_URL:', API_BASE_URL);
-
 // Types
 export interface User {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
+  avatarUrl?: string;
   phone?: string;
   location?: string;
   verified: boolean;
-  role: 'CLIENTE' | 'ENCARGADO';
+  role: 'CLIENTE' | 'ENCARGADO' | 'ADMIN';
   createdAt: string;
 }
 
@@ -69,6 +68,8 @@ export interface Order {
   price: number;
   paymentMethod: 'card' | 'cash';
   status: 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  paymentStatus?: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  paymentIntentId?: string;
   rating?: number;
   review?: Review;
   createdAt: string;
@@ -95,6 +96,7 @@ export interface Category {
   description: string;
   services: string[];
   encargadosCount?: number;
+  imageUrl?: string;
 }
 
 export interface Promotion {
@@ -108,6 +110,18 @@ export interface Promotion {
   gradient: string;
   imageUrl: string;
   validUntil?: string;
+}
+
+export interface Banner {
+  id: string;
+  icon: string;
+  title: string;
+  headline: string;
+  subtitle: string;
+  gradient: string;
+  image: string;
+  active: boolean;
+  order: number;
 }
 
 // API Client Class
@@ -129,6 +143,14 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Recargar token desde localStorage en cada petición
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken && storedToken !== this.token) {
+        this.token = storedToken;
+      }
+    }
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -138,33 +160,36 @@ class ApiClient {
       ...options,
     };
 
-    console.log('🔗 Request URL:', url);
-    console.log('⚙️ Request config:', config);
+    // console.log('🔗 Request URL:', url);
+    // console.log('⚙️ Request config:', config);
 
     try {
       const response = await fetch(url, config);
-      console.log('📡 Response status:', response.status, response.statusText);
-      console.log('📡 Response headers:', [...response.headers.entries()]);
+      // console.log('📡 Response status:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         // NestJS devuelve errores en diferentes formatos
         const errorMessage = errorData.message || errorData.error || errorData.statusText || `HTTP error! status: ${response.status}`;
-        console.error('❌ API request failed:', errorMessage);
-        console.error('📄 Error data:', errorData);
+        
+        // Solo mostrar error si no es 401 (para evitar spam en consola)
+        if (response.status !== 401) {
+          console.error('❌ API request failed:', errorMessage);
+          console.error('📄 Error data:', errorData);
+        }
+        
         throw new Error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
       }
 
       const responseData = await response.json();
-      console.log('✅ Response data received:', responseData);
-      console.log('✅ Response data type:', typeof responseData);
-      console.log('✅ Response data keys:', Object.keys(responseData));
+      // console.log('✅ Response data received:', responseData);
       
       return responseData;
     } catch (error) {
-      console.error('❌ API request failed:', error);
-      console.error('❌ Error type:', typeof error);
-      console.error('❌ Error constructor:', error?.constructor?.name);
+      // Solo mostrar error detallado si no es Unauthorized
+      if (!error?.toString().includes('Unauthorized')) {
+        console.error('❌ API request failed:', error);
+      }
       throw error;
     }
   }
@@ -305,6 +330,7 @@ class ApiClient {
     description?: string;
     services?: string[];
     available?: boolean;
+    avatar?: string;
   }) {
     return this.request<{ message: string; encargado: any }>(
       `/encargados/${id}`,
@@ -397,6 +423,51 @@ class ApiClient {
     );
   }
 
+  async updateOrder(id: string, data: Partial<Order>) {
+    return this.request<Order>(
+      `/orders/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async getOrderTransaction(id: string) {
+    return this.request<{ transactionId: string }>(
+      `/orders/${id}/transaction`
+    );
+  }
+
+  async confirmOrderPayment(id: string, transactionId?: string) {
+    return this.request<Order>(
+      `/orders/${id}/confirm-payment`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ transactionId }),
+      }
+    );
+  }
+
+  async confirmCashPayment(id: string) {
+    return this.request<Order>(
+      `/orders/${id}/confirm-cash-payment`,
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  async cancelOrderAndPayment(id: string, transactionId?: string) {
+    return this.request<Order>(
+      `/orders/${id}/cancel-payment`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ transactionId }),
+      }
+    );
+  }
+
   async addOrderReview(id: string, rating: number, comment?: string) {
     return this.request<{
       message: string;
@@ -417,6 +488,11 @@ class ApiClient {
     return this.request<Promotion[]>(
       `/promotions/category/${categoryId}`
     );
+  }
+
+  // Banners
+  async getBanners() {
+    return this.request<Banner[]>('/banners');
   }
 
   // Reviews
@@ -470,6 +546,51 @@ class ApiClient {
         1: number;
       };
     }>(`/reviews/encargado/${encargadoId}/stats`);
+  }
+  // Admin endpoints
+  async getAdminDashboard() {
+    return this.request<{
+      totalRevenue: number;
+      totalCommissions: number;
+      totalWompiCosts: number;
+      netProfit: number;
+      totalOrders: number;
+      completedOrders: number;
+      activeProviders: number;
+      activeClients: number;
+      avgOrderValue: number;
+      avgCommissionPercent: number;
+    }>(`/admin/dashboard`);
+  }
+
+  async getAdminMonthlyRevenue(months: number = 6) {
+    return this.request<Array<{
+      month: string;
+      revenue: number;
+      commissions: number;
+      wompiCosts: number;
+      netProfit: number;
+    }>>(`/admin/revenue/monthly?months=${months}`);
+  }
+
+  async getTopProviders(limit: number = 10) {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      totalRevenue: number;
+      totalOrders: number;
+      avgRating: number;
+      commissionsGenerated: number;
+    }>>(`/admin/providers/top?limit=${limit}`);
+  }
+
+  async getPaymentMethodStats() {
+    return this.request<Array<{
+      method: string;
+      count: number;
+      totalRevenue: number;
+      percentage: number;
+    }>>(`/admin/payment-methods/stats`);
   }
 }
 

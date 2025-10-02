@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, Briefcase } from 'lucide-react';
 import { Button, Input, Card } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import ResultModal from '@/components/ResultModal';
@@ -18,7 +18,7 @@ interface ModalData {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login, user, redirectToCorrectHome } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -64,8 +64,11 @@ export default function LoginPage() {
       console.log('✅ Login result:', success);
       
       if (success) {
-        // Redirección directa sin modal, se maneja automáticamente en AuthContext
-        console.log('✅ Login exitoso, redirigiendo automáticamente...');
+        console.log('✅ Login exitoso, ejecutando redirección...');
+        // Pequeño delay para asegurar que el user se haya actualizado
+        setTimeout(() => {
+          redirectToCorrectHome();
+        }, 100);
       } else {
         showModal(
           'error',
@@ -92,7 +95,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-              <span className="text-white text-2xl font-bold">E</span>
+              <Briefcase className="w-8 h-8 text-white" strokeWidth={2.5} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Bienvenido de vuelta!</h1>
             <p className="text-gray-600">Inicia sesión en tu cuenta de Encárgate</p>

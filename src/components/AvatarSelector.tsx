@@ -12,16 +12,16 @@ interface AvatarSelectorProps {
 
 export default function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelectorProps) {
   const [selectedAvatar, setSelectedAvatar] = useState(currentAvatar);
-  const [activeCategory, setActiveCategory] = useState<string>('fun');
+  const [activeCategory, setActiveCategory] = useState<string>('hogar');
   
   const avatarCategories = getAvatarsByCategory();
   
   const categories = [
-    { key: 'fun', label: '😄 Divertidos', avatars: avatarCategories.fun },
-    { key: 'adventurer', label: '🧑‍💼 Profesionales', avatars: avatarCategories.adventurer },
-    { key: 'bottts', label: '🤖 Robots', avatars: avatarCategories.bottts },
-    { key: 'personas', label: '👤 Personas', avatars: avatarCategories.personas },
-    { key: 'pixelArt', label: '🎮 Pixel Art', avatars: avatarCategories.pixelArt },
+    { key: 'hogar', label: '🏠 Hogar', avatars: avatarCategories.hogar },
+    { key: 'belleza', label: '💅 Belleza', avatars: avatarCategories.belleza },
+    { key: 'tecnologia', label: '💻 Tecnología', avatars: avatarCategories.tecnologia },
+    { key: 'salud', label: '🏥 Salud', avatars: avatarCategories.salud },
+    { key: 'general', label: '👤 General', avatars: avatarCategories.general },
   ];
 
   const handleRandomAvatar = () => {
