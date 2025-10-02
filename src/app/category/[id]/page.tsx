@@ -19,17 +19,19 @@ export default function CategoryPage() {
   const [categoryServices, setCategoryServices] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [banners, setBanners] = useState<any[]>([]);
 
   // Cargar datos de la categoría
   useEffect(() => {
     const loadCategoryData = async () => {
       try {
         setLoading(true);
-        const [categoryData, encargadosData, promotionsData, servicesData] = await Promise.all([
+        const [categoryData, encargadosData, promotionsData, servicesData, bannersData] = await Promise.all([
           apiClient.getCategoryById(categoryId),
           apiClient.getEncargados({ category: categoryId, available: true }),
           apiClient.getPromotions(),
-          apiClient.getCategoryServices(categoryId)
+          apiClient.getCategoryServices(categoryId),
+          apiClient.getBanners()
         ]);
         
         setCategory(categoryData);
@@ -37,6 +39,7 @@ export default function CategoryPage() {
         setEncargados(encargadosData || []);
         setPromotions(promotionsData || []);
         setCategoryServices(servicesData.services || []);
+        setBanners(bannersData || []);
       } catch (error) {
         console.error('Error loading category data:', error);
       } finally {
@@ -73,77 +76,52 @@ export default function CategoryPage() {
     );
   }
 
-  // Banners por categoría (como en la imagen)
-  const getBannerData = (categoryId: string) => {
-    const banners = {
-      hogar: {
-        title: "HOGAR",
-        subtitle: "Hogar limpio y reluciente, sin mover un dedo.",
-        image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=200&fit=crop&auto=format",
-        gradient: "from-green-500 to-green-600"
-      },
-      belleza: {
-        title: "BELLEZA",
-        subtitle: "Servicios de belleza profesional a domicilio",
-        image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=200&fit=crop&auto=format",
-        gradient: "from-pink-500 to-pink-600"
-      },
-      tecnologia: {
-        title: "TECNOLOGÍA",
-        subtitle: "Servicios técnicos especializados",
-        image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=200&fit=crop&auto=format",
-        gradient: "from-blue-500 to-blue-600"
-      },
-      profesionales: {
-        title: "PROFESIONALES",
-        subtitle: "Servicios profesionales especializados",
-        image: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=400&h=200&fit=crop&auto=format",
-        gradient: "from-orange-500 to-orange-600"
-      }
-    };
-    
-    return banners[categoryId as keyof typeof banners] || {
-      title: category.name.toUpperCase(),
-      subtitle: category.description,
-      image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=200&fit=crop&auto=format",
-      gradient: "from-gray-500 to-gray-600"
-    };
+  // Banner desde la base de datos o fallback
+  const bannerData = banners.length > 0 && banners[0] ? {
+    title: category?.name?.toUpperCase() || categoryId.toUpperCase(),
+    subtitle: banners[0].subtitle || category?.description || 'Servicios especializados a domicilio',
+    image: banners[0].image || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=400&h=200&fit=crop&auto=format',
+    gradient: banners[0].gradient || 'from-gray-500 to-gray-600'
+  } : {
+    title: category?.name?.toUpperCase() || categoryId.toUpperCase(),
+    subtitle: category?.description || 'Servicios especializados a domicilio',
+    image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=400&h=200&fit=crop&auto=format',
+    gradient: 'from-gray-500 to-gray-600'
   };
 
-  const bannerData = getBannerData(categoryId);
-
-  // Mapeo de iconos por servicio
+  // Mapeo de iconos por servicio - Iconos modernos y profesionales
   const getServiceIcon = (serviceName: string) => {
     const iconMap: { [key: string]: string } = {
-      'Limpieza': '🧽',
-      'Plomería': '🔧',
-      'Electricidad': '⚡',
+      'Limpieza': '🧹',
+      'Plomería': '🚰',
+      'Electricidad': '💡',
       'Carpintería': '🪚',
       'Jardinería': '🌿',
       'Mudanza': '📦',
       'Reparaciones': '🔨',
       'Pintura': '🎨',
       'Cerrajería': '🔑',
-      'Peluquería': '✂️',
+      'Peluquería': '💇‍♀️',
       'Manicure': '💅',
-      'Masajes': '💆',
-      'Estética': '💄',
+      'Masajes': '💆‍♀️',
+      'Estética': '✨',
       'Reparación PC': '💻',
-      'Soporte técnico': '🛠️',
-      'Instalación software': '💾',
+      'Soporte técnico': '🔧',
+      'Instalación software': '⚙️',
       'Tutorías': '📚',
-      'Clases particulares': '👨‍🏫',
-      'Idiomas': '🗣️',
+      'Clases particulares': '🎓',
+      'Idiomas': '🌐',
       'Niñera': '👶',
       'Cuidado de bebés': '🍼',
+      'Actividades infantiles': '🎨',
       'Contabilidad': '📊',
       'Legal': '⚖️',
-      'Consultoría': '💼',
-      'Veterinaria': '🐕',
+      'Consultoría': '🎯',
+      'Veterinaria': '🏥',
       'Peluquería canina': '✂️',
-      'Paseo de perros': '🦮'
+      'Paseo de perros': '🐕'
     };
-    return iconMap[serviceName] || '🔧';
+    return iconMap[serviceName] || '⚙️';
   };
 
   const getServiceColor = (index: number) => {

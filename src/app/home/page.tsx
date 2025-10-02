@@ -104,12 +104,14 @@ export default function HomePage() {
 
   // Auto-rotate banners cada 4 segundos
   useEffect(() => {
+    if (banners.length <= 1) return;
+    
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [banners.length]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -236,12 +238,11 @@ export default function HomePage() {
                 onClick={() => handleGuestClick(`/category/${category.id}`)}
                 className="flex flex-col items-center p-3 bg-white rounded-2xl cursor-pointer hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 rounded-full overflow-hidden mb-2 border-2 border-gray-100">
-                  <img 
-                    src={category.imageUrl || `https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=100&h=100&fit=crop&auto=format`}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div 
+                  className="w-12 h-12 rounded-full mb-2 flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: category.color || '#8B5CF6' }}
+                >
+                  <span>{category.icon}</span>
                 </div>
                 <span className="text-xs text-gray-700 text-center font-medium">{category.name}</span>
               </div>

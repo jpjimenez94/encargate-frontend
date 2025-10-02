@@ -101,9 +101,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setLastNotificationTime(Date.now());
         console.log(`🔔 Proveedor: ${newOrUpdatedOrders.length} nuevos pedidos/pagos detectados`);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Silenciar errores de autenticación (token inválido/expirado)
+      if (error?.message?.includes('Unauthorized') || error?.message?.includes('401')) {
+        console.log('🚫 Token inválido, deteniendo refresh de pedidos pendientes');
+        return;
+      }
       console.error('Error loading pending orders:', error);
-      // En caso de error, no actualizar el estado para evitar problemas
     }
   };
 
@@ -177,9 +181,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       //   console.log('✅ No hay notificaciones nuevas para mostrar');
       // }
     } catch (error: any) {
-      // Si es error de autenticación, no seguir intentando
+      // Silenciar errores de autenticación (token inválido/expirado)
       if (error?.message?.includes('Unauthorized') || error?.message?.includes('401')) {
-        console.log('🚫 Error de autenticación, deteniendo refresh de notificaciones');
+        console.log('🚫 Token inválido, deteniendo refresh de notificaciones cliente');
         return;
       }
       console.error('Error loading client notifications:', error);

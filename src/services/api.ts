@@ -186,8 +186,9 @@ class ApiClient {
       
       return responseData;
     } catch (error) {
-      // Solo mostrar error detallado si no es Unauthorized
-      if (!error?.toString().includes('Unauthorized')) {
+      // Solo mostrar error detallado si no es error de autenticación (401)
+      const errorStr = error?.toString() || '';
+      if (!errorStr.includes('Unauthorized') && !errorStr.includes('401')) {
         console.error('❌ API request failed:', error);
       }
       throw error;

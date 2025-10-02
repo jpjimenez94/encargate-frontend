@@ -13,48 +13,47 @@ import { pricingService, PricingBreakdown } from '@/services/pricing';
 // Types
 type PaymentMethodType = 'nequi' | 'bancolombia' | 'pse' | 'card' | 'cash';
 
-// Icon Components
+// Icon Components - Logos reales de las marcas
 const NequiIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" fill="#6B21A8"/>
-    <circle cx="50" cy="50" r="42" fill="#7C3AED"/>
-    <path d="M25 35h50v30H25z" fill="white" rx="4"/>
-    <text x="50" y="55" textAnchor="middle" className="text-lg font-bold" fill="#6B21A8">N</text>
-  </svg>
+  <div className={`${className} flex items-center justify-center`}>
+    <img 
+      src="/payment-logos/nequi.png" 
+      alt="Nequi" 
+      className="w-full h-full object-contain"
+    />
+  </div>
 );
 
 const BancolombiaIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" fill="#FFD700"/>
-    <circle cx="50" cy="50" r="42" fill="#FFA500"/>
-    <path d="M20 40h60v20H20z" fill="white" rx="4"/>
-    <text x="50" y="55" textAnchor="middle" className="text-sm font-bold" fill="#FFA500">BC</text>
-  </svg>
+  <div className={`${className} flex items-center justify-center`}>
+    <img 
+      src="/payment-logos/bancolombia.svg" 
+      alt="Bancolombia" 
+      className="w-full h-full object-contain"
+    />
+  </div>
 );
 
 const PSEIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" fill="#003f7f"/>
-    <circle cx="50" cy="50" r="42" fill="#0066cc"/>
-    <g transform="translate(18, 35)">
-      <path d="M0 0h12c4 0 7 2 7 6s-3 6-7 6H4v8h-4V0zm4 8h8c1 0 2-1 2-2s-1-2-2-2H4v4z" fill="white"/>
-      <path d="M22 0h12c3 0 5 2 5 4c0 1-1 2-2 3c1 1 2 2 2 4c0 3-2 5-5 5H22c-3 0-5-2-5-5h4c0 1 1 1 1 1h8c1 0 1-1 1-1s0-1-1-1h-8c-3 0-5-2-5-5s2-5 5-5zm0 4c-1 0-1 1-1 1s0 1 1 1h8c1 0 1-1 1-1s0-1-1-1h-8z" fill="white"/>
-      <path d="M44 0h16v4h-12v4h10v4h-10v4h12v4H44V0z" fill="white"/>
-    </g>
-    <text x="50" y="75" textAnchor="middle" className="text-xs" fill="white">ACH</text>
-  </svg>
+  <div className={`${className} flex items-center justify-center`}>
+    <img 
+      src="/payment-logos/pse.svg" 
+      alt="PSE" 
+      className="w-full h-full object-contain"
+    />
+  </div>
 );
 
 const CashIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="5" y="25" width="90" height="50" rx="6" fill="#059669"/>
-    <rect x="8" y="28" width="84" height="44" rx="4" fill="#10B981"/>
-    <circle cx="50" cy="50" r="15" fill="white"/>
-    <text x="50" y="58" textAnchor="middle" className="text-lg font-bold" fill="#059669">$</text>
-    <rect x="82" y="32" width="6" height="36" rx="3" fill="#047857"/>
-    <circle cx="20" cy="40" r="2" fill="#047857"/>
-    <circle cx="80" cy="60" r="2" fill="#047857"/>
-  </svg>
+  <div className={`${className} bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md`}>
+    <svg viewBox="0 0 40 40" fill="white" className="w-6 h-6">
+      <rect x="4" y="12" width="32" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+      <circle cx="20" cy="20" r="5" fill="currentColor"/>
+      <text x="20" y="23" fontSize="6" fill="white" textAnchor="middle" fontWeight="bold">$</text>
+      <circle cx="8" cy="16" r="1" fill="currentColor"/>
+      <circle cx="32" cy="24" r="1" fill="currentColor"/>
+    </svg>
+  </div>
 );
 
 // Main Component
@@ -991,7 +990,7 @@ export default function CheckoutCoPage({ params }: { params: Promise<{ orderId: 
           )}
 
           {/* Checkbox de términos y condiciones - Para todos los métodos de Wompi */}
-          {isWompiMethod && acceptanceToken && (
+          {isWompiMethod && (
             <div className="mt-6 bg-gray-50 border border-gray-300 rounded-lg p-4">
               <label className="flex items-start space-x-3 cursor-pointer">
                 <input
@@ -1002,14 +1001,18 @@ export default function CheckoutCoPage({ params }: { params: Promise<{ orderId: 
                 />
                 <span className="text-sm text-gray-700">
                   Acepto los{' '}
-                  <a
-                    href={acceptanceToken.permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline font-medium"
-                  >
-                    términos y condiciones
-                  </a>
+                  {acceptanceToken?.permalink ? (
+                    <a
+                      href={acceptanceToken.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      términos y condiciones
+                    </a>
+                  ) : (
+                    <span className="text-blue-600 font-medium">términos y condiciones</span>
+                  )}
                   {' '}y autorizo el tratamiento de mis datos personales para procesar el pago.
                 </span>
               </label>
